@@ -178,19 +178,19 @@ const PRODUCT_DATABASE = [
     },
 ];
 
+// Optimized Question Order
 const questions = [
     { id: 'priorities', text: 'What\'s most important to you in a phone? (Rank your top 4)', type: 'ranked-choice', options: [{ id: 'camera', text: 'Amazing Photos & Videos' }, { id: 'performance', text: 'Speed & Power' }, { id: 'battery', text: 'All-Day Battery Life' }, { id: 'price', text: 'Best Value for Money' }] },
     { id: 'budget', text: 'What\'s your approximate budget?', type: 'single-choice', options: [{ id: 'budget', text: 'Under $400' }, { id: 'standard', text: '$400 - $800' }, { id: 'premium', text: '$800 - $1200' }, { id: 'ultra-premium', text: '$1200+' }] },
     { id: 'ecosystem', text: 'Are you part of a tech ecosystem?', type: 'single-choice', options: [{ id: 'apple', text: 'Yes, I use Apple products (Mac, Watch, etc.)' }, { id: 'android', text: 'Yes, I use Google/Android products (Windows, etc.)' }, { id: 'none', text: 'No, I\'m open to anything' }] },
-    { id: 'brand', text: 'Any brand preference?', type: 'single-choice', options: [{ id: 'apple', text: 'Show me iPhones only' }, { id: 'samsung', text: 'Show me Samsung phones only' }, { id: 'any', text: 'I\'m open to any brand' }] },
     { id: 'screenSize', text: 'What size phone do you prefer?', type: 'single-choice', options: [{ id: 'small-screen', text: 'Compact & One-Handed' }, { id: 'large-screen', text: 'Large & Immersive' }] },
+    { id: 'storage', text: 'How much storage do you typically need?', type: 'single-choice', options: [{ id: 'light', text: 'Light User (Apps, photos, some music)' }, { id: 'average', text: 'Average User (Lots of photos, videos, apps)' }, { id: 'power', text: 'Power User (Downloads everything, shoots 4K video)' }] },
     { id: 'cameraPrio', text: 'What kind of photos are most important? (Rank your choices)', type: 'ranked-choice', options: [{ id: 'portraits', text: 'People & Portraits' }, { id: 'zoom', text: 'Subjects Far Away' }, { id: 'point-and-shoot', text: 'Quick Point-and-Shoot' }] },
     { id: 'gaming', text: 'Do you play games on your phone?', type: 'single-choice', options: [{ id: 'gaming-pro', text: 'Yes, graphically intense games' }, { id: 'gaming-casual', text: 'Yes, but mostly casual games' }, { id: 'none', text: 'Not really' }] },
+    { id: 'longevity', text: 'How long do you plan to keep this phone?', type: 'single-choice', options: [{ id: 'long-support', text: 'For as long as it works (4+ years)' }, { id: 'long-support-average', text: 'For a few years (2-3 years)' }, { id: 'none', text: 'I like to upgrade frequently (1-2 years)' }] },
     { id: 'durability', text: 'How do you feel about phone durability?', type: 'single-choice', options: [{ id: 'rugged', text: 'I need maximum protection' }, { id: 'standard-durability', text: 'Standard durability is fine' }, { id: 'style-focus', text: 'I prioritize style over ruggedness' }] },
     { id: 'charging', text: 'What\'s your charging style?', type: 'single-choice', options: [{ id: 'fast-charge', text: 'I want the fastest charge possible' }, { id: 'wireless-charge', text: 'I prefer wireless charging convenience' }, { id: 'battery', text: 'I just want the longest-lasting battery' }] },
-    { id: 'storage', text: 'How much storage do you typically need?', type: 'single-choice', options: [{ id: 'light', text: 'Light User (Apps, photos, some music)' }, { id: 'average', text: 'Average User (Lots of photos, videos, apps)' }, { id: 'power', text: 'Power User (Downloads everything, shoots 4K video)' }] },
     { id: 'features', text: 'Are you interested in features beyond the basics?', type: 'single-choice', options: [{ id: 'stylus', text: 'Yes, a built-in stylus for notes' }, { id: 'foldable', text: 'Yes, I\'m intrigued by foldable phones' }, { id: 'extra-features', text: 'Yes, advanced software features' }, { id: 'none', text: 'No, just the standard experience' }] },
-    { id: 'longevity', text: 'How long do you plan to keep this phone?', type: 'single-choice', options: [{ id: 'long-support', text: 'For as long as it works (4+ years)' }, { id: 'long-support-average', text: 'For a few years (2-3 years)' }, { id: 'none', text: 'I like to upgrade frequently (1-2 years)' }] },
 ];
 
 
@@ -200,48 +200,41 @@ const getRecommendations = (answers) => {
     PRODUCT_DATABASE.forEach(phone => {
         scores[phone.id] = 0;
 
-        // 1. Ecosystem
-        if (answers.ecosystem === phone.ecosystem) {
-            scores[phone.id] += 20;
+        // Ecosystem check is important. If a user is in the Apple ecosystem, only recommend iPhones.
+        if (answers.ecosystem === 'apple' && phone.ecosystem !== 'apple') {
+            scores[phone.id] -= 1000; // Heavily penalize non-Apple phones for Apple users
+        } else if (answers.ecosystem === 'android' && phone.ecosystem !== 'android') {
+             scores[phone.id] -= 1000; // Optional: Penalize non-Android for Android users
+        } else {
+             scores[phone.id] += 20;
         }
 
-        // 2. Budget
+        // Budget
         if (answers.budget === phone.budgetCategory) {
             scores[phone.id] += 15;
         }
-        
-        // 3. Brand Preference
-        if (answers.brand !== 'any') {
-             if ((answers.brand === 'apple' && phone.ecosystem === 'apple') || (answers.brand === 'samsung' && phone.name.toLowerCase().includes('samsung'))) {
-                scores[phone.id] += 50; // Heavy weight for explicit brand choice
-            } else {
-                scores[phone.id] -= 500; // Penalize other brands heavily
-            }
-        }
 
-
-        // 4. Ranked Priorities
+        // Ranked Priorities
         if(answers.priorities) {
             answers.priorities.forEach((prio, index) => {
-                const weight = 4 - index; // 1st = 4 points, 2nd = 3, etc.
+                const weight = 4 - index;
                 if (phone.tags.includes(prio)) {
                     scores[phone.id] += weight * 5;
                 }
             });
         }
         
-         // Ranked Photo Priorities
+        // Ranked Photo Priorities
         if (answers.cameraPrio && answers.cameraPrio.length > 0) {
             answers.cameraPrio.forEach((prio, index) => {
-                const weight = 3 - index; // 1st = 3 points, 2nd = 2, etc.
+                const weight = 3 - index;
                 if (phone.tags.includes(prio)) {
                     scores[phone.id] += weight * 4;
                 }
             });
         }
 
-
-        // 5. Other tags
+        // Other tags
         const otherAnswers = ['screenSize', 'gaming', 'durability', 'charging', 'features', 'longevity'];
         otherAnswers.forEach(key => {
             if (answers[key] && phone.tags.includes(answers[key])) {
@@ -249,16 +242,15 @@ const getRecommendations = (answers) => {
             }
         });
 
-        // 6. Storage Check
+        // Storage Check
         const storageNeedsMap = { light: 128, average: 256, power: 512 };
         const requiredStorage = storageNeedsMap[answers.storage];
         const hasAdequateStorage = phone.storageOptions.some(option => parseInt(option) >= requiredStorage);
         if(hasAdequateStorage) {
             scores[phone.id] += 10;
         } else {
-            scores[phone.id] -= 100; // Penalize if storage is insufficient
+            scores[phone.id] -= 100;
         }
-
     });
 
     const sortedPhones = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
@@ -274,6 +266,7 @@ const getRecommendations = (answers) => {
 
 
 const App = () => {
+    const [journeyStarted, setJourneyStarted] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
     const [showResults, setShowResults] = useState(false);
@@ -294,15 +287,7 @@ const App = () => {
                 setAnswers(prev => ({ ...prev, [questionId]: newAnswers }));
             }
         } else {
-            setAnswers(prev => {
-                const newAnswers = { ...prev, [questionId]: answerId };
-                // If user selects apple ecosystem, automatically select apple brand preference
-                if (questionId === 'ecosystem' && answerId === 'apple') {
-                    newAnswers.brand = 'apple';
-                }
-                return newAnswers;
-            });
-
+            setAnswers(prev => ({ ...prev, [questionId]: answerId }));
             if (currentQuestionIndex < questions.length - 1) {
                 setCurrentQuestionIndex(currentQuestionIndex + 1);
             } else {
@@ -327,7 +312,36 @@ const App = () => {
         setAnswers({});
         setCurrentQuestionIndex(0);
         setShowResults(false);
+        setJourneyStarted(false);
     };
+
+    if (!journeyStarted) {
+        return (
+             <div className="bg-gray-50 min-h-screen flex flex-col items-center justify-center text-gray-800 p-4">
+                <header className="absolute top-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
+                    <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
+                </header>
+                <div className="text-center max-w-2xl">
+                    <h1 className="text-4xl md:text-5xl font-bold text-[#002D3E]">Find Your Perfect Smartphone</h1>
+                    <p className="text-lg text-gray-600 mt-4">
+                        Tired of confusing specs and endless reviews? This simple guide asks a few questions about your needs and habits to give you a personalized recommendation.
+                    </p>
+                    <div className="mt-8 text-left space-y-4">
+                       <p><b>1. Answer Questions:</b> Quickly go through our simple, non-technical questionnaire.</p>
+                       <p><b>2. Get Recommendations:</b> Instantly see your top 3 matches based on your unique profile.</p>
+                       <p><b>3. Find the Best Deal:</b> We'll search the web for the best price on your recommended phone.</p>
+                    </div>
+                    <button 
+                        onClick={() => setJourneyStarted(true)}
+                        className="mt-10 bg-[#00A99D] text-white font-bold py-4 px-8 rounded-lg hover:bg-[#0084A8] transition-colors shadow-lg text-xl"
+                    >
+                        Let's Get Started
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
 
     if (showResults) {
         return <ResultsDisplay answers={answers} onRestart={handleRestart} />;
@@ -401,80 +415,11 @@ const App = () => {
 const ResultsDisplay = ({ answers, onRestart }) => {
     const [recommendations, setRecommendations] = useState([]);
     const [deals, setDeals] = useState({});
-    const [progress, setProgress] = useState({});
-
-    const fetchBestDeal = React.useCallback(async (productName, storage) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-        try {
-            const response = await fetch(`/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.statusText}`);
-            }
-            const data = await response.json();
-            if (!data.deal) {
-                throw new Error("Deal data not found in response");
-            }
-            return data.deal;
-
-        } catch (error) {
-            clearTimeout(timeoutId);
-            console.error("Error fetching deal:", error.name === 'AbortError' ? 'Request timed out' : error);
-            
-            const query = `best deal on ${productName} ${storage}`;
-            const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-            return {
-                url: url,
-                title: `Find Best Deal on Google`
-            };
-        }
-    }, []);
 
     useEffect(() => {
         const topRecs = getRecommendations(answers);
         setRecommendations(topRecs);
-
-        const fetchAllDeals = async () => {
-            const dealPromises = topRecs.map(rec => {
-                const id = rec.id;
-                const duration = 10000; // Corresponds to the timeout
-                const startTime = Date.now();
-                
-                const intervalId = setInterval(() => {
-                    const elapsedTime = Date.now() - startTime;
-                    const currentProgress = Math.min(100, (elapsedTime / duration) * 100);
-                    setProgress(prev => ({ ...prev, [id]: currentProgress }));
-
-                    if (currentProgress >= 100) {
-                        clearInterval(intervalId);
-                    }
-                }, 100);
-
-                return fetchBestDeal(rec.name, rec.recommendedStorage).then(deal => {
-                    clearInterval(intervalId);
-                    setProgress(prev => ({ ...prev, [id]: 100 }));
-                    return { id, deal };
-                });
-            });
-
-            const settledDeals = await Promise.all(dealPromises);
-            const dealsMap = settledDeals.reduce((acc, { id, deal }) => {
-                acc[id] = deal;
-                return acc;
-            }, {});
-            setDeals(dealsMap);
-        };
-        
-        if (topRecs.length > 0) {
-            fetchAllDeals();
-        }
-    }, [answers, fetchBestDeal]);
+    }, [answers]);
 
 
     const getPriorityText = (key) => {
@@ -486,49 +431,44 @@ const ResultsDisplay = ({ answers, onRestart }) => {
     };
     
     return (
-        <div className="bg-gray-50 min-h-screen text-gray-800 p-4 md:p-8">
-             <header className="w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md mb-8 -m-8">
+        <div className="bg-gray-50 min-h-screen text-gray-800">
+             <header className="w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
                 <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
             </header>
             
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto p-4 md:p-8">
                 <div className="text-center mb-10">
                     <h1 className="text-4xl font-bold text-[#002D3E]">Your Personal Recommendations</h1>
                     <p className="text-lg text-gray-600 mt-2">Based on your preferences, here are the top 3 phones for you.</p>
                 </div>
                 
                 <div className="grid md:grid-cols-3 gap-8 mb-12">
-                     {recommendations.length > 0 ? recommendations.map((rec, index) => (
-                        <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
-                            {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
-                            <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
-                            <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
+                     {recommendations.length > 0 ? recommendations.map((rec, index) => {
+                        const query = `best deal on ${rec.name} ${rec.recommendedStorage}`;
+                        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                        return (
+                            <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
+                                {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
+                                <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
+                                <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
 
-                             <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
-                                <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {answers.priorities && answers.priorities.slice(0, 2).map(prio => rec.tags.includes(prio) && <li key={prio}>Excellent for <span className="font-semibold">{getPriorityText(prio)}</span></li>)}
-                                    {answers.screenSize && rec.tags.includes(answers.screenSize) && <li>Great <span className="font-semibold">{getPriorityText(answers.screenSize)}</span> experience</li>}
-                                    {answers.longevity && rec.tags.includes(answers.longevity) && <li>Built to last with <span className="font-semibold">long-term support</span></li>}
-                                </ul>
-                            </div>
-                            
-                            <div className="mt-auto">
-                                {!deals[rec.id] ? (
-                                     <div>
-                                        <p className="text-sm text-gray-500 mb-2">Finding best deal...</p>
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                            <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-2.5 rounded-full" style={{ width: `${progress[rec.id] || 0}%` }}></div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <a href={deals[rec.id].url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
-                                        {deals[rec.id].title}
+                                 <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
+                                    <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        {answers.priorities && answers.priorities.slice(0, 2).map(prio => rec.tags.includes(prio) && <li key={prio}>Excellent for <span className="font-semibold">{getPriorityText(prio)}</span></li>)}
+                                        {answers.screenSize && rec.tags.includes(answers.screenSize) && <li>Great <span className="font-semibold">{getPriorityText(answers.screenSize)}</span> experience</li>}
+                                        {answers.longevity && rec.tags.includes(answers.longevity) && <li>Built to last with <span className="font-semibold">long-term support</span></li>}
+                                    </ul>
+                                </div>
+                                
+                                <div className="mt-auto">
+                                     <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
+                                        Find Best Deal
                                     </a>
-                                )}
+                                </div>
                             </div>
-                        </div>
-                    )) : <p>Loading recommendations...</p>}
+                        )
+                    }) : <p>Loading recommendations...</p>}
                 </div>
                 
                  <div className="bg-white rounded-xl shadow-lg p-6 mt-12">
@@ -568,6 +508,8 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 };
 
 export default App;
+
+
 
 
 
