@@ -1,49 +1,45 @@
-// File: netlify/functions/fetch-deal.js
 const axios = require('axios');
 
 exports.handler = async (event) => {
-  // Get the secret keys from Netlify's environment variables
-  const API_KEY = process.env.GOOGLE_API_KEY;
-  const SEARCH_ENGINE_ID = process.env.GOOGLE_SEARCH_ENGINE_ID;
-
-  // Get the productName and storage from the request URL
   const { productName, storage } = event.queryStringParameters;
+  const apiKey = process.env.GOOGLE_API_KEY;
+  const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
 
-  if (!productName || !storage) {
+  // Verify that the necessary environment variables are set
+  if (!apiKey || !searchEngineId) {
+    console.error("Missing Google API Key or Search Engine ID");
     return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'productName and storage are required' }),
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server configuration error." }),
     };
   }
 
-  const searchQuery = `best deal on ${productName} ${storage}`;
-  const url = `https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(searchQuery)}`;
+  const query = `best price for "${productName}" ${storage}`;
+  const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}`;
 
   try {
     const response = await axios.get(url);
-    const items = response.data.items;
+    const firstResult = response.data.items && response.data.items[0];
 
-    if (items && items.length > 0) {
-      const topResult = items[0];
-      const deal = {
-        url: topResult.link,
-        title: topResult.title,
-      };
-      return {
-        statusCode: 200,
-        body: JSON.stringify(deal),
-      };
-    } else {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ message: 'No deals found' }),
-      };
+    if (!firstResult) {
+      throw new Error(`No search results found for: ${query}`);
     }
+
+    const deal = {
+      title: `Best Deal: ${firstResult.title}`,
+      url: firstResult.link,
+    };
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal }),
+    };
   } catch (error) {
-    console.error('Error performing Google search:', error);
+    console.error("Error fetching deal:", error.message);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to fetch deals' }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
