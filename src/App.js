@@ -330,10 +330,19 @@ const App = () => {
                     <p className="text-lg text-gray-600 mt-4">
                         Tired of confusing specs and endless reviews? This simple guide asks a few questions about your needs and habits to give you a personalized recommendation.
                     </p>
-                    <div className="mt-8 text-left space-y-4">
-                       <p>1. <span className="font-black">Answer Questions</span>: Quickly go through our simple, non-technical questionnaire.</p>
-                       <p>2. <span className="font-black">Get Recommendations</span>: Instantly see your top 3 matches based on your unique profile.</p>
-                       <p>3. <span className="font-black">Find the Best Deal</span>: We'll search the web for the best price on your recommended phone.</p>
+                    <div className="mt-8 text-left space-y-6">
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">1. Answer Questions</h3>
+                           <p className="text-gray-600">Quickly go through our simple, non-technical questionnaire.</p>
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">2. Get Recommendations</h3>
+                           <p className="text-gray-600">Instantly see your top 3 matches based on your unique profile.</p>
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">3. Find the Best Deal</h3>
+                           <p className="text-gray-600">We'll search the web for the best price on your recommended phone.</p>
+                       </div>
                     </div>
                     <button 
                         onClick={() => setJourneyStarted(true)}
@@ -588,6 +597,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 };
 
 export default App;
+
 
 
 
