@@ -404,7 +404,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
     const [progress, setProgress] = useState({});
 
     const fetchBestDeal = React.useCallback(async (productName, storage) => {
-        // Use the Netlify function
+        // Use the Netlify function.
         try {
             const response = await fetch(`/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`);
             if (!response.ok) {
