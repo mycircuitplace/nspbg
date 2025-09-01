@@ -415,11 +415,82 @@ const App = () => {
 const ResultsDisplay = ({ answers, onRestart }) => {
     const [recommendations, setRecommendations] = useState([]);
     const [deals, setDeals] = useState({});
+    const [progress, setProgress] = useState({});
+
+    const fetchBestDeal = React.useCallback(async (productName, storage) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const baseUrl = window.location.origin;
+
+        try {
+            const response = await fetch(`${baseUrl}/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                 const errorBody = await response.text();
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}. Server response: ${errorBody}`);
+            }
+            const data = await response.json();
+            if (!data.deal) {
+                throw new Error("Deal data not found in response");
+            }
+            return data.deal;
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error("Detailed error fetching deal:", error);
+            
+            const query = `best deal on ${productName} ${storage}`;
+            const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            return {
+                url: url,
+                title: `Find Best Deal on Google`
+            };
+        }
+    }, []);
 
     useEffect(() => {
         const topRecs = getRecommendations(answers);
         setRecommendations(topRecs);
-    }, [answers]);
+
+        const fetchAllDeals = async () => {
+            const dealPromises = topRecs.map(rec => {
+                const id = rec.id;
+                const duration = 10000; // Corresponds to the timeout
+                const startTime = Date.now();
+                
+                const intervalId = setInterval(() => {
+                    const elapsedTime = Date.now() - startTime;
+                    const currentProgress = Math.min(100, (elapsedTime / duration) * 100);
+                    setProgress(prev => ({ ...prev, [id]: currentProgress }));
+
+                    if (currentProgress >= 100) {
+                        clearInterval(intervalId);
+                    }
+                }, 100);
+
+                return fetchBestDeal(rec.name, rec.recommendedStorage).then(deal => {
+                    clearInterval(intervalId);
+                    setProgress(prev => ({ ...prev, [id]: 100 }));
+                    return { id, deal };
+                });
+            });
+
+            const settledDeals = await Promise.all(dealPromises);
+            const dealsMap = settledDeals.reduce((acc, { id, deal }) => {
+                acc[id] = deal;
+                return acc;
+            }, {});
+            setDeals(dealsMap);
+        };
+        
+        if (topRecs.length > 0) {
+            fetchAllDeals();
+        }
+    }, [answers, fetchBestDeal]);
 
 
     const getPriorityText = (key) => {
@@ -443,32 +514,37 @@ const ResultsDisplay = ({ answers, onRestart }) => {
                 </div>
                 
                 <div className="grid md:grid-cols-3 gap-8 mb-12">
-                     {recommendations.length > 0 ? recommendations.map((rec, index) => {
-                        const query = `best deal on ${rec.name} ${rec.recommendedStorage}`;
-                        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-                        return (
-                            <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
-                                {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
-                                <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
-                                <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
+                     {recommendations.length > 0 ? recommendations.map((rec, index) => (
+                        <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
+                            {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
+                            <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
+                            <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
 
-                                 <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
-                                    <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
-                                    <ul className="list-disc list-inside space-y-1">
-                                        {answers.priorities && answers.priorities.slice(0, 2).map(prio => rec.tags.includes(prio) && <li key={prio}>Excellent for <span className="font-semibold">{getPriorityText(prio)}</span></li>)}
-                                        {answers.screenSize && rec.tags.includes(answers.screenSize) && <li>Great <span className="font-semibold">{getPriorityText(answers.screenSize)}</span> experience</li>}
-                                        {answers.longevity && rec.tags.includes(answers.longevity) && <li>Built to last with <span className="font-semibold">long-term support</span></li>}
-                                    </ul>
-                                </div>
-                                
-                                <div className="mt-auto">
-                                     <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
-                                        Find Best Deal
-                                    </a>
-                                </div>
+                             <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
+                                <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                    {answers.priorities && answers.priorities.slice(0, 2).map(prio => rec.tags.includes(prio) && <li key={prio}>Excellent for <span className="font-semibold">{getPriorityText(prio)}</span></li>)}
+                                    {answers.screenSize && rec.tags.includes(answers.screenSize) && <li>Great <span className="font-semibold">{getPriorityText(answers.screenSize)}</span> experience</li>}
+                                    {answers.longevity && rec.tags.includes(answers.longevity) && <li>Built to last with <span className="font-semibold">long-term support</span></li>}
+                                </ul>
                             </div>
-                        )
-                    }) : <p>Loading recommendations...</p>}
+                            
+                            <div className="mt-auto">
+                                {!deals[rec.id] ? (
+                                     <div>
+                                        <p className="text-sm text-gray-500 mb-2">Finding best deal...</p>
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-2.5 rounded-full" style={{ width: `${progress[rec.id] || 0}%` }}></div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <a href={deals[rec.id].url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
+                                        {deals[rec.id].title}
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )) : <p>Loading recommendations...</p>}
                 </div>
                 
                  <div className="bg-white rounded-xl shadow-lg p-6 mt-12">
