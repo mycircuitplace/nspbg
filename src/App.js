@@ -193,6 +193,10 @@ const questions = [
     { id: 'features', text: 'Are you interested in features beyond the basics?', type: 'single-choice', options: [{ id: 'stylus', text: 'Yes, a built-in stylus for notes' }, { id: 'foldable', text: 'Yes, I\'m intrigued by foldable phones' }, { id: 'extra-features', text: 'Yes, advanced software features' }, { id: 'none', text: 'No, just the standard experience' }] },
 ];
 
+const backgroundStyle = {
+  backgroundColor: '#f9fafb', // equivalent to bg-gray-50
+  backgroundImage: `url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="20" height="20" fill="%23f9fafb"/%3E%3Ccircle cx="1" cy="1" r="1" fill="%23e5e7eb"/%3E%3C/svg%3E')`,
+};
 
 const getRecommendations = (answers) => {
     let scores = {};
@@ -317,19 +321,19 @@ const App = () => {
 
     if (!journeyStarted) {
         return (
-             <div className="bg-gray-50 min-h-screen flex flex-col items-center justify-center text-gray-800 p-4">
+             <div style={backgroundStyle} className="min-h-screen flex flex-col items-center justify-center text-gray-800 p-4">
                 <header className="absolute top-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
                     <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
                 </header>
                 <div className="text-center max-w-2xl">
-                    <h1 className="text-4xl md:text-5xl font-bold text-[#002D3E]">Find Your Perfect Smartphone</h1>
+                    <h1 className="text-4xl md:text-5xl font-bold text-[#002D3E]">Find Your Next Smartphone</h1>
                     <p className="text-lg text-gray-600 mt-4">
                         Tired of confusing specs and endless reviews? This simple guide asks a few questions about your needs and habits to give you a personalized recommendation.
                     </p>
                     <div className="mt-8 text-left space-y-4">
-                       <p><b>1. Answer Questions:</b> Quickly go through our simple, non-technical questionnaire.</p>
-                       <p><b>2. Get Recommendations:</b> Instantly see your top 3 matches based on your unique profile.</p>
-                       <p><b>3. Find the Best Deal:</b> We'll search the web for the best price on your recommended phone.</p>
+                       <p>1. <span className="font-black">Answer Questions</span>: Quickly go through our simple, non-technical questionnaire.</p>
+                       <p>2. <span className="font-black">Get Recommendations</span>: Instantly see your top 3 matches based on your unique profile.</p>
+                       <p>3. <span className="font-black">Find the Best Deal</span>: We'll search the web for the best price on your recommended phone.</p>
                     </div>
                     <button 
                         onClick={() => setJourneyStarted(true)}
@@ -354,7 +358,7 @@ const App = () => {
     const rankedAnswers = answers[currentQuestion.id] || [];
 
     return (
-        <div className="bg-gray-50 min-h-screen flex flex-col items-center text-gray-800">
+        <div style={backgroundStyle} className="min-h-screen flex flex-col items-center text-gray-800">
             <header className="w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
                 <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
             </header>
@@ -502,7 +506,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
     };
     
     return (
-        <div className="bg-gray-50 min-h-screen text-gray-800">
+        <div style={backgroundStyle} className="min-h-screen text-gray-800">
              <header className="w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
                 <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
             </header>
