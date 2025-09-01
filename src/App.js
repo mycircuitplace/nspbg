@@ -404,17 +404,29 @@ const ResultsDisplay = ({ answers, onRestart }) => {
     const [progress, setProgress] = useState({});
 
     const fetchBestDeal = React.useCallback(async (productName, storage) => {
-        // Use the Netlify function.
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         try {
-            const response = await fetch(`/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`);
+            const response = await fetch(`/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`Network response was not ok: ${response.statusText}`);
             }
             const data = await response.json();
+            if (!data.deal) {
+                throw new Error("Deal data not found in response");
+            }
             return data.deal;
+
         } catch (error) {
-            console.error("Error fetching deal:", error);
-            // Fallback to a simple Google search link if the function fails
+            clearTimeout(timeoutId);
+            console.error("Error fetching deal:", error.name === 'AbortError' ? 'Request timed out' : error);
+            
             const query = `best deal on ${productName} ${storage}`;
             const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
             return {
@@ -431,18 +443,21 @@ const ResultsDisplay = ({ answers, onRestart }) => {
         const fetchAllDeals = async () => {
             const dealPromises = topRecs.map(rec => {
                 const id = rec.id;
-                setProgress(prev => ({ ...prev, [id]: 0 }));
+                const duration = 10000; // Corresponds to the timeout
+                const startTime = Date.now();
                 
-                const interval = setInterval(() => {
-                    setProgress(prev => {
-                        const currentProgress = prev[id] || 0;
-                        if (currentProgress >= 95) return { ...prev, [id]: currentProgress };
-                        return { ...prev, [id]: currentProgress + Math.random() * 15 };
-                    });
-                }, 300);
+                const intervalId = setInterval(() => {
+                    const elapsedTime = Date.now() - startTime;
+                    const currentProgress = Math.min(100, (elapsedTime / duration) * 100);
+                    setProgress(prev => ({ ...prev, [id]: currentProgress }));
+
+                    if (currentProgress >= 100) {
+                        clearInterval(intervalId);
+                    }
+                }, 100);
 
                 return fetchBestDeal(rec.name, rec.recommendedStorage).then(deal => {
-                    clearInterval(interval);
+                    clearInterval(intervalId);
                     setProgress(prev => ({ ...prev, [id]: 100 }));
                     return { id, deal };
                 });
@@ -553,6 +568,8 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 };
 
 export default App;
+
+
 
 
 
