@@ -49,7 +49,8 @@ const searchWithGemini = async (query) => {
 
     try {
         console.log(`Querying Gemini with grounding for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 });
+        // Increased timeout to 25 seconds
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 25000 });
 
         const candidate = response.data.candidates?.[0];
         
@@ -63,7 +64,6 @@ const searchWithGemini = async (query) => {
         if (textContent) {
             console.log("Received raw text from Gemini:", textContent);
             
-            // Clean the response to ensure it's valid JSON
             textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
 
             const parsedJson = JSON.parse(textContent);
@@ -122,6 +122,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
