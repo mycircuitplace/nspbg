@@ -29,57 +29,36 @@ const searchSlickdeals = async (query) => {
     }
 };
 
-// --- Helper for Gemini Search with Grounding ---
-const searchWithGemini = async (query) => {
+// --- Helper for standard Google Custom Search API Fallback ---
+const searchGoogle = async (query) => {
     const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-        console.error("Google API Key (for Gemini) is not configured.");
+    const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
+    
+    if (!apiKey || !searchEngineId) {
+        console.error("Google Search API credentials (API Key and Search Engine ID) are not configured.");
         return null;
     }
 
-    const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-    // A more direct prompt optimized for the faster flash model, prioritizing finding a valid URL.
-    const systemPrompt = `You are an AI deal-finding engine. Your primary goal is to find a direct URL to a currently active deal or sale page for a specific smartphone from a major US retailer. Analyze the search results to find a clear promotion, sale price, or offer. Your final output MUST be a single, clean JSON object. If a deal page is found, provide a "title" and its direct "url". The title should be concise and mention the retailer and the offer (e.g., "Best Buy - Save $150" or "T-Mobile - Special Offer"). The most important part of your task is returning a valid URL. If you absolutely cannot find a specific deal page, you MUST return a JSON object with the "url" field set to null. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
-    
-    const payload = {
-        contents: [{ parts: [{ text: query }] }],
-        tools: [{ "google_search_retrieval": {} }],
-        systemInstruction: { parts: [{ text: systemPrompt }] }
-    };
+    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}`;
 
     try {
-        // Using a 9-second timeout to stay within the default Netlify 10-second limit
-        console.log(`Querying Gemini 1.5 Flash with a 9-second timeout for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 });
+        console.log(`Falling back to Google Search API for query: ${query}`);
+        const response = await axios.get(url, { timeout: 9000 });
+        const firstResult = response.data.items && response.data.items[0];
 
-        const candidate = response.data.candidates?.[0];
-        if (!candidate) {
-            console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
-            return null;
+        if (firstResult) {
+            console.log("Found Google Search result:", firstResult.title);
+            return {
+                title: `See Deal: ${firstResult.title}`,
+                url: firstResult.link,
+            };
         }
 
-        let textContent = candidate?.content?.parts?.[0]?.text;
-        if (textContent) {
-            console.log("Received raw text from Gemini:", textContent);
-            textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsedJson = JSON.parse(textContent);
-            
-            if (parsedJson.url && parsedJson.title) {
-                console.log("Found valid Gemini Deal:", parsedJson.title);
-                return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
-            } else {
-                 console.log("Gemini returned a valid JSON object, but the deal/URL was null, indicating no specific deal was found.");
-                 return null;
-            }
-        }
-        
-        console.log("Gemini did not return any usable text content.");
+        console.log("No results from Google Search fallback.");
         return null;
-
     } catch (error) {
-        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error("Error during Gemini API call:", errorMessage);
-        return null;
+        console.error("Error during Google Search API call:", error.message);
+        return null; // Return null on error to allow final fallback
     }
 };
 
@@ -88,7 +67,7 @@ exports.handler = async (event) => {
   const { productName, storage } = event.queryStringParameters;
   
   const slickdealsQuery = `${productName} ${storage}`;
-  const geminiQuery = `User request: Find the best current deal in the United States on the ${productName} (${storage}). Analyze prices, trade-ins, and gift card offers from major US retailers.`;
+  const googleApiQuery = `best price for "${productName}" ${storage}`;
 
   let deal = null;
 
@@ -96,10 +75,10 @@ exports.handler = async (event) => {
     // 1. Try Slickdeals
     deal = await searchSlickdeals(slickdealsQuery);
 
-    // 2. If no Slickdeals deal, try Gemini with Grounding
+    // 2. If no Slickdeals deal, try the standard Google Search API
     if (!deal) {
-      console.log("Slickdeals returned no results. Falling back to Gemini API.");
-      deal = await searchWithGemini(geminiQuery);
+      console.log("Slickdeals returned no results. Falling back to Google Custom Search API.");
+      deal = await searchGoogle(googleApiQuery);
     }
   } catch (error) {
     console.error("A critical error occurred during the deal searching process:", error.message);
@@ -122,6 +101,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
