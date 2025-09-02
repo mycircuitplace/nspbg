@@ -46,8 +46,8 @@ const searchWithGemini = async (query) => {
     };
 
     try {
-        console.log(`Querying Gemini with a 30-second timeout for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 30000 });
+        console.log(`Querying Gemini with a 35-second timeout for: ${query}`);
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 35000 });
 
         const candidate = response.data.candidates?.[0];
         if (!candidate) {
@@ -115,6 +115,8 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
+
 
 
 
