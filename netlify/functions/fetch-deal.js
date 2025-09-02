@@ -21,7 +21,7 @@ const searchSlickdeals = async (query) => {
             console.log("Found Slickdeal:", firstDeal.title);
             return { title: `Deal: ${firstDeal.title}`, url: firstDeal.url };
         }
-        console.log("No Slickdeals found for the query.");
+        console.log("No valid Slickdeals found for the query.");
         return null;
     } catch (error) {
         console.error("Error during Apify Slickdeals search:", error.message);
@@ -38,7 +38,8 @@ const searchWithGemini = async (query) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is defined as the offer with the lowest total cost of ownership. You must consider all factors, including: upfront price, mail-in rebates, included gift cards, bundled accessories (like chargers or earbuds), and carrier-specific trade-in promotions. Prioritize deals from major, reputable US retailers. Your final output MUST be a single, clean JSON object containing only a "title" and a "url". The title should be concise and mention the retailer and the key value proposition (e.g., "Verizon - $800 off with Trade-in" or "Best Buy - $100 Gift Card Included"). The URL must lead directly to the deal page. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    
     const payload = {
         contents: [{ parts: [{ text: query }] }],
         tools: [{ "google_search": {} }],
@@ -60,13 +61,18 @@ const searchWithGemini = async (query) => {
             console.log("Received raw text from Gemini:", textContent);
             textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedJson = JSON.parse(textContent);
+            
+            // **Crucial Check:** Ensure the URL from Gemini is not null or empty.
             if (parsedJson.url && parsedJson.title) {
-                console.log("Found Gemini Deal:", parsedJson.title);
+                console.log("Found valid Gemini Deal:", parsedJson.title);
                 return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
+            } else {
+                 console.log("Gemini returned a valid JSON object, but the deal/URL was null, indicating no specific deal was found.");
+                 return null;
             }
         }
         
-        console.log("Gemini did not return a usable JSON deal.");
+        console.log("Gemini did not return any usable text content.");
         return null;
 
     } catch (error) {
@@ -115,6 +121,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
