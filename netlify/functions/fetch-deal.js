@@ -38,18 +38,19 @@ const searchWithGemini = async (query) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    // A more direct prompt optimized for the faster flash model, prioritizing finding a valid URL.
+    const systemPrompt = `You are an AI deal-finding engine. Your primary goal is to find a direct URL to a currently active deal or sale page for a specific smartphone from a major US retailer. Analyze the search results to find a clear promotion, sale price, or offer. Your final output MUST be a single, clean JSON object. If a deal page is found, provide a "title" and its direct "url". The title should be concise and mention the retailer and the offer (e.g., "Best Buy - Save $150" or "T-Mobile - Special Offer"). The most important part of your task is returning a valid URL. If you absolutely cannot find a specific deal page, you MUST return a JSON object with the "url" field set to null. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
     
     const payload = {
         contents: [{ parts: [{ text: query }] }],
-        // Corrected tool name based on the API error message
         tools: [{ "google_search_retrieval": {} }],
         systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
     try {
-        console.log(`Querying Gemini with a 35-second timeout for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 35000 });
+        // Using a 9-second timeout to stay within the default Netlify 10-second limit
+        console.log(`Querying Gemini 1.5 Flash with a 9-second timeout for: ${query}`);
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 });
 
         const candidate = response.data.candidates?.[0];
         if (!candidate) {
@@ -63,7 +64,6 @@ const searchWithGemini = async (query) => {
             textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
             const parsedJson = JSON.parse(textContent);
             
-            // **Crucial Check:** Ensure the URL from Gemini is not null or empty.
             if (parsedJson.url && parsedJson.title) {
                 console.log("Found valid Gemini Deal:", parsedJson.title);
                 return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
@@ -122,6 +122,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
