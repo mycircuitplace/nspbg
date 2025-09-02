@@ -1,9 +1,6 @@
 const axios = require('axios');
 const { ApifyClient } = require('apify-client');
 
-// --- Helper for waiting/sleeping ---
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 // --- Helper for Apify Slickdeals Search ---
 const searchSlickdeals = async (query) => {
     if (!process.env.APIFY_API_TOKEN) {
@@ -32,7 +29,7 @@ const searchSlickdeals = async (query) => {
     }
 };
 
-// --- Helper for Gemini Search with Grounding (Now with Retries) ---
+// --- Helper for Gemini Search with Grounding ---
 const searchWithGemini = async (query) => {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
@@ -48,46 +45,35 @@ const searchWithGemini = async (query) => {
         systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
-    const maxRetries = 3;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`Querying Gemini (Attempt ${attempt}/${maxRetries}) for: ${query}`);
-            // Shorter timeout per attempt to allow for retries within the overall limit
-            const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 7000 });
+    try {
+        console.log(`Querying Gemini with a 25-second timeout for: ${query}`);
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 25000 });
 
-            const candidate = response.data.candidates?.[0];
-            if (!candidate) {
-                console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
-                continue; // Treat as a failure and possibly retry
-            }
+        const candidate = response.data.candidates?.[0];
+        if (!candidate) {
+            console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
+            return null;
+        }
 
-            let textContent = candidate?.content?.parts?.[0]?.text;
-            if (textContent) {
-                console.log("Received raw text from Gemini:", textContent);
-                textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
-                const parsedJson = JSON.parse(textContent);
-                if (parsedJson.url && parsedJson.title) {
-                    console.log("Found Gemini Deal:", parsedJson.title);
-                    return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
-                }
-            }
-        } catch (error) {
-            const isServerError = error.response && error.response.status >= 500;
-            const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-            console.error(`Error during Gemini API call (Attempt ${attempt}):`, errorMessage);
-
-            if (isServerError && attempt < maxRetries) {
-                const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff: 1s, 2s
-                console.log(`Server error detected. Retrying in ${delay}ms...`);
-                await sleep(delay);
-            } else {
-                return null; // Failed all retries or it's not a server error
+        let textContent = candidate?.content?.parts?.[0]?.text;
+        if (textContent) {
+            console.log("Received raw text from Gemini:", textContent);
+            textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsedJson = JSON.parse(textContent);
+            if (parsedJson.url && parsedJson.title) {
+                console.log("Found Gemini Deal:", parsedJson.title);
+                return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
             }
         }
+        
+        console.log("Gemini did not return a usable JSON deal.");
+        return null;
+
+    } catch (error) {
+        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error("Error during Gemini API call:", errorMessage);
+        return null;
     }
-    
-    console.log("Gemini did not return a usable JSON deal after all retries.");
-    return null;
 };
 
 
@@ -129,6 +115,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
