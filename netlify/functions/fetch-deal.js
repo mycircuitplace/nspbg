@@ -1,6 +1,9 @@
 const axios = require('axios');
 const { ApifyClient } = require('apify-client');
 
+// --- Helper for waiting/sleeping ---
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // --- Helper for Apify Slickdeals Search ---
 const searchSlickdeals = async (query) => {
     if (!process.env.APIFY_API_TOKEN) {
@@ -29,7 +32,7 @@ const searchSlickdeals = async (query) => {
     }
 };
 
-// --- Helper for Gemini Search with Grounding ---
+// --- Helper for Gemini Search with Grounding (Now with Retries) ---
 const searchWithGemini = async (query) => {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
@@ -38,48 +41,53 @@ const searchWithGemini = async (query) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
     const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone. The "best deal" is defined as the offer with the lowest total cost of ownership. You must consider all factors, including: upfront price, mail-in rebates, included gift cards, bundled accessories (like chargers or earbuds), and carrier-specific trade-in promotions. Prioritize deals from major, reputable retailers. Your final output MUST be a single, clean JSON object containing only a "title" and a "url". The title should be concise and mention the retailer and the key value proposition (e.g., "Verizon - $800 off with Trade-in" or "Best Buy - $100 Gift Card Included"). The URL must lead directly to the deal page. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
-
     const payload = {
         contents: [{ parts: [{ text: query }] }],
         tools: [{ "google_search": {} }],
         systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
-    try {
-        console.log(`Querying Gemini with grounding for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 25000 });
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Querying Gemini (Attempt ${attempt}/${maxRetries}) for: ${query}`);
+            // Shorter timeout per attempt to allow for retries within the overall limit
+            const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 7000 });
 
-        const candidate = response.data.candidates?.[0];
-        
-        if (!candidate) {
-             console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
-             return null;
-        }
+            const candidate = response.data.candidates?.[0];
+            if (!candidate) {
+                console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
+                continue; // Treat as a failure and possibly retry
+            }
 
-        let textContent = candidate?.content?.parts?.[0]?.text;
+            let textContent = candidate?.content?.parts?.[0]?.text;
+            if (textContent) {
+                console.log("Received raw text from Gemini:", textContent);
+                textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsedJson = JSON.parse(textContent);
+                if (parsedJson.url && parsedJson.title) {
+                    console.log("Found Gemini Deal:", parsedJson.title);
+                    return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
+                }
+            }
+        } catch (error) {
+            const isServerError = error.response && error.response.status >= 500;
+            const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+            console.error(`Error during Gemini API call (Attempt ${attempt}):`, errorMessage);
 
-        if (textContent) {
-            console.log("Received raw text from Gemini:", textContent);
-            
-            textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            const parsedJson = JSON.parse(textContent);
-            if (parsedJson.url && parsedJson.title) {
-                console.log("Found Gemini Deal:", parsedJson.title);
-                return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
+            if (isServerError && attempt < maxRetries) {
+                const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff: 1s, 2s
+                console.log(`Server error detected. Retrying in ${delay}ms...`);
+                await sleep(delay);
+            } else {
+                return null; // Failed all retries or it's not a server error
             }
         }
-        
-        console.log("Gemini did not return a usable JSON deal.");
-        return null;
-
-    } catch (error) {
-        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error("Error during Gemini API call:", errorMessage);
-        return null;
     }
+    
+    console.log("Gemini did not return a usable JSON deal after all retries.");
+    return null;
 };
 
 
@@ -121,6 +129,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 
