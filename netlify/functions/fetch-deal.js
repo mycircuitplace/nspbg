@@ -5,7 +5,7 @@ const { ApifyClient } = require('apify-client');
 const searchSlickdeals = async (query) => {
     if (!process.env.APIFY_API_TOKEN) {
         console.error("Apify API Token is not configured.");
-        return null; // Return null to allow fallback, don't throw error
+        return null; // Return null to allow fallback
     }
     const apifyClient = new ApifyClient({ token: process.env.APIFY_API_TOKEN });
     const actorId = 'powerai/slickdeals-search-scraper';
@@ -13,20 +13,14 @@ const searchSlickdeals = async (query) => {
     try {
         console.log(`Starting Apify actor for query: ${query}`);
         const run = await apifyClient.actor(actorId).call({ search: query, limit: 5 });
-        
         console.log(`Apify actor run initiated. Waiting for results...`);
         const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
-        
-        const firstDeal = items.find(item => item.url); 
-        
+        const firstDeal = items.find(item => item.url);
+
         if (firstDeal) {
             console.log("Found Slickdeal:", firstDeal.title);
-            return {
-                title: `Deal: ${firstDeal.title}`,
-                url: firstDeal.url,
-            };
+            return { title: `Deal: ${firstDeal.title}`, url: firstDeal.url };
         }
-        
         console.log("No Slickdeals found for the query.");
         return null;
     } catch (error) {
@@ -35,36 +29,56 @@ const searchSlickdeals = async (query) => {
     }
 };
 
-// --- Helper for Google Search Fallback ---
-const searchGoogle = async (query) => {
+// --- Helper for Gemini Search with Grounding ---
+const searchWithGemini = async (query) => {
     const apiKey = process.env.GOOGLE_API_KEY;
-    const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
-    
-    if (!apiKey || !searchEngineId) {
-        console.error("Google Search API credentials are not configured.");
+    if (!apiKey) {
+        console.error("Google API Key (for Gemini) is not configured.");
         return null;
     }
 
-    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}`;
+    const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+    const systemPrompt = `You are an expert e-commerce deal finder. Your sole purpose is to find the single best, currently active online deal for the user's requested product. You must analyze the search results to find the deal with the best overall value, considering the lowest price, bundles, gift cards, and trade-in offers. Your response must be a single, clean JSON object containing only a "title" and a "url" for the deal page. Do not add any extra text or explanations.`;
+
+    const payload = {
+        contents: [{ parts: [{ text: query }] }],
+        tools: [{ "google_search": {} }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    "title": { "type": "STRING", "description": "A concise title for the deal found." },
+                    "url": { "type": "STRING", "description": "The direct URL to the purchase page for the deal." }
+                },
+                required: ["title", "url"]
+            }
+        }
+    };
 
     try {
-        console.log(`Falling back to Google Search for query: ${query}`);
-        const response = await axios.get(url);
-        const firstResult = response.data.items && response.data.items[0];
+        console.log(`Querying Gemini with grounding for: ${query}`);
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 }); // 9 second timeout for API call
 
-        if (firstResult) {
-            console.log("Found Google Search result:", firstResult.title);
-            return {
-                title: `See Deal: ${firstResult.title}`,
-                url: firstResult.link,
-            };
+        const candidate = response.data.candidates?.[0];
+        const textContent = candidate?.content?.parts?.[0]?.text;
+
+        if (textContent) {
+            const parsedJson = JSON.parse(textContent);
+            if (parsedJson.url && parsedJson.title) {
+                console.log("Found Gemini Deal:", parsedJson.title);
+                return { title: `See Deal: ${parsedJson.title}`, url: parsedJson.url };
+            }
         }
-
-        console.log("No results from Google Search fallback.");
+        
+        console.log("Gemini did not return a usable JSON deal.");
         return null;
+
     } catch (error) {
-        console.error("Error during Google Search API call:", error.message);
-        return null; // Return null on error to allow final fallback
+        console.error("Error during Gemini API call:", error.response ? error.response.data.error.message : error.message);
+        return null;
     }
 };
 
@@ -73,7 +87,7 @@ exports.handler = async (event) => {
   const { productName, storage } = event.queryStringParameters;
   
   const slickdealsQuery = `${productName} ${storage}`;
-  const googleApiQuery = `best price for "${productName}" ${storage}`;
+  const geminiQuery = `Find the best deal for "${productName}" with ${storage}, including trade-in values, gift cards, and other incentives.`;
 
   let deal = null;
 
@@ -81,14 +95,13 @@ exports.handler = async (event) => {
     // 1. Try Slickdeals
     deal = await searchSlickdeals(slickdealsQuery);
 
-    // 2. If no Slickdeals deal, try Google API
+    // 2. If no Slickdeals deal, try Gemini with Grounding
     if (!deal) {
-      console.log("Slickdeals returned no results. Falling back to Google Search API.");
-      deal = await searchGoogle(googleApiQuery);
+      console.log("Slickdeals returned no results. Falling back to Gemini API.");
+      deal = await searchWithGemini(geminiQuery);
     }
   } catch (error) {
     console.error("A critical error occurred during the deal searching process:", error.message);
-    // This catch is for unexpected errors; normal failures are handled by returning null.
   }
 
   // 3. If deal is STILL null after all attempts, create the final fallback link
