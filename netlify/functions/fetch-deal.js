@@ -38,7 +38,7 @@ const searchWithGemini = async (query) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone. The "best deal" is defined as the offer with the lowest total cost of ownership. You must consider all factors, including: upfront price, mail-in rebates, included gift cards, bundled accessories (like chargers or earbuds), and carrier-specific trade-in promotions. Prioritize deals from major, reputable retailers. Your final output MUST be a single, clean JSON object containing only a "title" and a "url". The title should be concise and mention the retailer and the key value proposition (e.g., "Verizon - $800 off with Trade-in" or "Best Buy - $100 Gift Card Included"). The URL must lead directly to the deal page. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is defined as the offer with the lowest total cost of ownership. You must consider all factors, including: upfront price, mail-in rebates, included gift cards, bundled accessories (like chargers or earbuds), and carrier-specific trade-in promotions. Prioritize deals from major, reputable US retailers. Your final output MUST be a single, clean JSON object containing only a "title" and a "url". The title should be concise and mention the retailer and the key value proposition (e.g., "Verizon - $800 off with Trade-in" or "Best Buy - $100 Gift Card Included"). The URL must lead directly to the deal page. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
     const payload = {
         contents: [{ parts: [{ text: query }] }],
         tools: [{ "google_search": {} }],
@@ -81,7 +81,7 @@ exports.handler = async (event) => {
   const { productName, storage } = event.queryStringParameters;
   
   const slickdealsQuery = `${productName} ${storage}`;
-  const geminiQuery = `User request: Find the best current deal on the ${productName} (${storage}). Analyze prices, trade-ins, and gift card offers from major retailers.`;
+  const geminiQuery = `User request: Find the best current deal in the United States on the ${productName} (${storage}). Analyze prices, trade-ins, and gift card offers from major US retailers.`;
 
   let deal = null;
 
@@ -115,6 +115,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
 
 
 

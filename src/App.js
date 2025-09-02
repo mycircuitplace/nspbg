@@ -432,7 +432,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 
     const fetchBestDeal = React.useCallback(async (productName, storage) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000); // Match backend timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
         const baseUrl = window.location.origin;
 
         try {
@@ -472,7 +472,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
         const fetchAllDeals = async () => {
             const dealPromises = topRecs.map(rec => {
                 const id = rec.id;
-                const duration = 25000; // Match backend timeout
+                const duration = 30000; // Match frontend timeout
                 const startTime = Date.now();
                 
                 const intervalId = setInterval(() => {
