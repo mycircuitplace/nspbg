@@ -1,4 +1,4 @@
-# This file provides explicit build settings for Netlify.
+# This file provides explicit build settings for Netlify...
 
 [build]
   # Command to build the React app
