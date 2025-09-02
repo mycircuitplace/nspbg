@@ -39,33 +39,33 @@ const searchWithGemini = async (query) => {
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-    const systemPrompt = `You are an expert e-commerce deal finder. Your sole purpose is to find the single best, currently active online deal for the user's requested product. You must analyze the search results to find the deal with the best overall value, considering the lowest price, bundles, gift cards, and trade-in offers. Your response must be a single, clean JSON object containing only a "title" and a "url" for the deal page. Do not add any extra text or explanations.`;
+    const systemPrompt = `You are an expert e-commerce deal finder. Your sole purpose is to find the single best, currently active online deal for the user's requested product. You must analyze the search results to find the deal with the best overall value, considering the lowest price, bundles, gift cards, and trade-in offers. Your response MUST be a single, clean JSON object containing only a "title" and a "url" for the deal page. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations. For example: {"title": "Example Deal Title", "url": "https://example.com/deal"}`;
 
     const payload = {
         contents: [{ parts: [{ text: query }] }],
         tools: [{ "google_search": {} }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: "OBJECT",
-                properties: {
-                    "title": { "type": "STRING", "description": "A concise title for the deal found." },
-                    "url": { "type": "STRING", "description": "The direct URL to the purchase page for the deal." }
-                },
-                required: ["title", "url"]
-            }
-        }
+        systemInstruction: { parts: [{ text: systemPrompt }] }
     };
 
     try {
         console.log(`Querying Gemini with grounding for: ${query}`);
-        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 }); // 9 second timeout for API call
+        const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 9000 });
 
         const candidate = response.data.candidates?.[0];
-        const textContent = candidate?.content?.parts?.[0]?.text;
+        
+        if (!candidate) {
+             console.log("Gemini response did not contain any candidates. This could be due to safety filters.");
+             return null;
+        }
+
+        let textContent = candidate?.content?.parts?.[0]?.text;
 
         if (textContent) {
+            console.log("Received raw text from Gemini:", textContent);
+            
+            // Clean the response to ensure it's valid JSON
+            textContent = textContent.replace(/```json/g, '').replace(/```/g, '').trim();
+
             const parsedJson = JSON.parse(textContent);
             if (parsedJson.url && parsedJson.title) {
                 console.log("Found Gemini Deal:", parsedJson.title);
@@ -77,7 +77,8 @@ const searchWithGemini = async (query) => {
         return null;
 
     } catch (error) {
-        console.error("Error during Gemini API call:", error.response ? error.response.data.error.message : error.message);
+        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error("Error during Gemini API call:", errorMessage);
         return null;
     }
 };
@@ -121,6 +122,8 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
+
 
 
 
