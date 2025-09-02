@@ -37,7 +37,8 @@ const searchWithGemini = async (query) => {
         return null;
     }
 
-    const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    // Switched to the faster gemini-1.5-flash model
+    const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
     
     const payload = {
@@ -121,6 +122,8 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
+
 
 
 
