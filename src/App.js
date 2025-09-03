@@ -252,46 +252,48 @@ const backgroundStyle = {
 const getRecommendations = (answers) => {
     let scores = {};
     const budgetOrder = { 'budget': 1, 'standard': 2, 'premium': 3, 'ultra-premium': 4 };
+    const userBudgetLevel = budgetOrder[answers.budget];
 
     PRODUCT_DATABASE.forEach(phone => {
         scores[phone.id] = 0;
+        const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
 
-        // Ecosystem check
+        // --- Start with Penalties to filter out bad matches ---
+        
+        if (phoneBudgetLevel > userBudgetLevel) {
+            scores[phone.id] -= 1000;
+        }
+
         if (answers.ecosystem === 'apple' && phone.ecosystem !== 'apple') {
             scores[phone.id] -= 1000;
         } else if (answers.ecosystem === 'android' && phone.ecosystem !== 'android') {
              scores[phone.id] -= 1000;
-        } else {
-             scores[phone.id] += 20;
         }
 
-        // Base score for matching the user's selected budget
-        if (answers.budget === phone.budgetCategory) {
-            scores[phone.id] += 15;
+        const storageNeedsMap = { light: 128, average: 256, power: 512 };
+        const requiredStorage = storageNeedsMap[answers.storage];
+        const hasAdequateStorage = phone.storageOptions.some(option => parseInt(option) >= requiredStorage);
+        if(!hasAdequateStorage) {
+            scores[phone.id] -= 100;
         }
 
-        // Ranked Priorities
+        // --- Then, add points for good matches ---
+
+        scores[phone.id] += 20;
+
         if (answers.priorities) {
             answers.priorities.forEach((prio, index) => {
-                const weight = 4 - index; // 1st = 4 points, 2nd = 3, etc.
+                const weight = 4 - index;
 
                 if (prio === 'price') {
-                    // --- Smart "Best Value" Logic ---
-                    const userBudgetLevel = budgetOrder[answers.budget];
-                    const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
-
-                    // Give a large, weighted bonus if a phone is in a cheaper category than the user's max budget
                     if (phoneBudgetLevel < userBudgetLevel) {
                         const budgetDifference = userBudgetLevel - phoneBudgetLevel;
                         scores[phone.id] += weight * 10 * budgetDifference; 
                     }
-                    // Give a smaller bonus if the phone is known for being a good value in its class (has the 'price' tag)
                     if (phone.tags.includes('price')) {
                          scores[phone.id] += weight * 5;
                     }
-
                 } else {
-                    // Standard logic for other priorities (camera, performance, battery)
                     if (phone.tags.includes(prio)) {
                         scores[phone.id] += weight * 5;
                     }
@@ -299,7 +301,6 @@ const getRecommendations = (answers) => {
             });
         }
         
-        // Ranked Photo Priorities
         if (answers.cameraPrio && answers.cameraPrio.length > 0) {
             answers.cameraPrio.forEach((prio, index) => {
                 const weight = 3 - index;
@@ -309,21 +310,12 @@ const getRecommendations = (answers) => {
             });
         }
 
-        // Other tags
         const otherAnswers = ['screenSize', 'gaming', 'durability', 'charging', 'features', 'longevity'];
         otherAnswers.forEach(key => {
             if (answers[key] && phone.tags.includes(answers[key])) {
                 scores[phone.id] += 8;
             }
         });
-
-        // Storage Check
-        const storageNeedsMap = { light: 128, average: 256, power: 512 };
-        const requiredStorage = storageNeedsMap[answers.storage];
-        const hasAdequateStorage = phone.storageOptions.some(option => parseInt(option) >= requiredStorage);
-        if(!hasAdequateStorage) {
-            scores[phone.id] -= 100;
-        }
     });
 
     const sortedPhones = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
@@ -494,6 +486,111 @@ const App = () => {
     );
 };
 
+const getPriorityText = (key) => {
+    for (const q of questions) {
+        const option = q.options.find(opt => opt.id === key);
+        if (option) return option.text;
+    }
+    return key;
+};
+
+const generateMatchReasons = (phone, answers) => {
+    let reasons = [];
+    
+    // Priorities
+    if (answers.priorities && answers.priorities.length > 0) {
+        const topPrio = answers.priorities[0];
+        if (phone.tags.includes(topPrio)) {
+            let reasonText = '';
+            switch(topPrio) {
+                case 'camera': reasonText = 'A top-tier camera for stunning photos'; break;
+                case 'performance': reasonText = 'Blazing-fast performance for demanding tasks'; break;
+                case 'battery': reasonText = 'An all-day battery to keep you going'; break;
+                case 'price': reasonText = 'Exceptional value for the money'; break;
+                default: break;
+            }
+            if(reasonText) reasons.push(reasonText);
+        }
+    }
+
+    // Specific Features
+    if (answers.features === 'stylus' && phone.tags.includes('stylus')) {
+        reasons.push('A perfect creative tool with its built-in stylus');
+    }
+    if (answers.features === 'foldable' && phone.tags.includes('foldable')) {
+        reasons.push('A futuristic folding screen for multitasking');
+    }
+    if (answers.gaming === 'gaming-pro' && phone.tags.includes('gaming-pro')) {
+        reasons.push('Built for competitive, high-performance gaming');
+    }
+    if (answers.durability === 'rugged' && phone.tags.includes('rugged')) {
+        reasons.push('Extra durable for peace of mind');
+    }
+
+    // Fill with other matches if we don't have enough reasons yet
+    if (reasons.length < 3) {
+        if (phone.tags.includes(answers.screenSize)) {
+            reasons.push(answers.screenSize === 'large-screen' ? 'An immersive large display' : 'A comfortable compact design');
+        }
+    }
+     if (reasons.length < 3) {
+         if (phone.tags.includes(answers.longevity)) {
+             reasons.push('Built to last with long-term software support');
+         }
+     }
+
+    return reasons.slice(0, 3); // Return the top 3 most relevant reasons
+};
+
+
+const TechProfile = ({ answers }) => {
+    const getPersona = () => {
+        const topPrio = answers.priorities?.[0];
+        if (topPrio === 'price' || answers.budget === 'budget') return "The Savvy Shopper";
+        if (topPrio === 'performance' && answers.gaming === 'gaming-pro') return "The Power Player";
+        if (topPrio === 'camera' && answers.cameraPrio?.[0] === 'portraits') return "The Memory Maker";
+        if (topPrio === 'battery' && answers.longevity === 'long-support') return "The Marathoner";
+        return "The Balanced User";
+    };
+
+    const ProfileItem = ({ title, value }) => (
+        <div>
+            <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider">{title}</h4>
+            <p className="text-gray-800 text-lg">{getPriorityText(value)}</p>
+        </div>
+    );
+
+    return (
+        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 mt-12">
+            <h3 className="text-2xl font-bold text-[#002D3E] mb-2">Your Tech Persona: <span className="text-[#00A99D]">{getPersona()}</span></h3>
+            <p className="text-gray-600 mb-6">Here's a summary of what you told us is important.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
+                <div>
+                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Priorities</h4>
+                    <ol className="list-decimal list-inside text-gray-800 space-y-1">
+                        {answers.priorities?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
+                    </ol>
+                </div>
+                 <div>
+                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Photo Style</h4>
+                     <ol className="list-decimal list-inside text-gray-800 space-y-1">
+                        {answers.cameraPrio?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
+                    </ol>
+                </div>
+                <div className="space-y-4">
+                     <ProfileItem title="Budget" value={answers.budget} />
+                     <ProfileItem title="Screen Size" value={answers.screenSize} />
+                </div>
+                <div className="space-y-4">
+                    <ProfileItem title="How Long You'll Keep It" value={answers.longevity} />
+                    <ProfileItem title="Durability" value={answers.durability} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const ResultsDisplay = ({ answers, onRestart }) => {
     const [recommendations, setRecommendations] = useState([]);
     const [deals, setDeals] = useState({});
@@ -574,15 +671,6 @@ const ResultsDisplay = ({ answers, onRestart }) => {
             fetchAllDeals();
         }
     }, [answers, fetchBestDeal]);
-
-
-    const getPriorityText = (key) => {
-        for (const q of questions) {
-            const option = q.options.find(opt => opt.id === key);
-            if (option) return option.text;
-        }
-        return key;
-    };
     
     return (
         <div style={backgroundStyle} className="min-h-screen text-gray-800">
@@ -597,64 +685,41 @@ const ResultsDisplay = ({ answers, onRestart }) => {
                 </div>
                 
                 <div className="grid md:grid-cols-3 gap-8 mb-12">
-                     {recommendations.length > 0 ? recommendations.map((rec, index) => (
-                        <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
-                            {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
-                            <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
-                            <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
+                     {recommendations.length > 0 ? recommendations.map((rec, index) => {
+                        const matchReasons = generateMatchReasons(rec, answers);
+                        return (
+                            <div key={rec.id} className={`bg-white rounded-xl shadow-lg p-6 flex flex-col text-center transition-all duration-300 ${index === 0 ? 'border-4 border-[#00A99D]' : ''}`}>
+                                {index === 0 && <span className="mx-auto -mt-10 mb-4 bg-[#00A99D] text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg">Top Pick</span>}
+                                <h2 className="text-2xl font-bold text-[#002D3E]">{rec.name}</h2>
+                                <p className="font-semibold text-gray-700 mt-1">Recommended Storage: <span className="text-[#0084A8]">{rec.recommendedStorage}</span></p>
 
-                             <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
-                                <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {answers.priorities && answers.priorities.slice(0, 2).map(prio => rec.tags.includes(prio) && <li key={prio}>Excellent for <span className="font-semibold">{getPriorityText(prio)}</span></li>)}
-                                    {answers.screenSize && rec.tags.includes(answers.screenSize) && <li>Great <span className="font-semibold">{getPriorityText(answers.screenSize)}</span> experience</li>}
-                                    {answers.longevity && rec.tags.includes(answers.longevity) && <li>Built to last with <span className="font-semibold">long-term support</span></li>}
-                                </ul>
-                            </div>
-                            
-                            <div className="mt-auto">
-                                {!deals[rec.id] ? (
-                                     <div>
-                                        <p className="text-sm text-gray-500 mb-2">Finding best deal...</p>
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                            <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-2.5 rounded-full" style={{ width: `${progress[rec.id] || 0}%` }}></div>
+                                 <div className="text-left my-6 text-sm text-gray-600 space-y-2 flex-grow">
+                                    <h4 className="font-bold text-md text-[#002D3E] mb-2">Why it's a match:</h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {matchReasons.map((reason, i) => <li key={i}>{reason}</li>)}
+                                    </ul>
+                                </div>
+                                
+                                <div className="mt-auto">
+                                    {!deals[rec.id] ? (
+                                         <div>
+                                            <p className="text-sm text-gray-500 mb-2">Finding best deal...</p>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-2.5 rounded-full" style={{ width: `${progress[rec.id] || 0}%` }}></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <a href={deals[rec.id].url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
-                                        {deals[rec.id].title}
-                                    </a>
-                                )}
+                                    ) : (
+                                        <a href={deals[rec.id].url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
+                                            {deals[rec.id].title}
+                                        </a>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )) : <p>Loading recommendations...</p>}
+                        )
+                    }) : <p>Loading recommendations...</p>}
                 </div>
                 
-                 <div className="bg-white rounded-xl shadow-lg p-6 mt-12">
-                    <h3 className="text-2xl font-bold text-[#002D3E] mb-4">Your Tech Profile</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <h4 className="font-bold text-gray-500">Priorities</h4>
-                             <ol className="list-decimal list-inside text-gray-700">
-                                {answers.priorities && answers.priorities.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                            </ol>
-                        </div>
-                         <div>
-                            <h4 className="font-bold text-gray-500">Photo Style</h4>
-                             <ol className="list-decimal list-inside text-gray-700">
-                                {answers.cameraPrio && answers.cameraPrio.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                            </ol>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-500">Budget</h4>
-                            <p className="text-gray-700">{getPriorityText(answers.budget)}</p>
-                        </div>
-                         <div>
-                            <h4 className="font-bold text-gray-500">Longevity</h4>
-                            <p className="text-gray-700">{getPriorityText(answers.longevity)}</p>
-                        </div>
-                    </div>
-                </div>
+                 <TechProfile answers={answers} />
 
                 <div className="text-center mt-12">
                     <button onClick={onRestart} className="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-colors shadow-md">
