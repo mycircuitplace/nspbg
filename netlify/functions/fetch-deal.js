@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // --- Helper for Gemini Search with Grounding (Primary Search) ---
-const searchWithGemini = async (query) => {
+const searchWithGemini = async (query, productName) => {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
         console.error("Google API Key (for Gemini) is not configured.");
@@ -9,7 +9,7 @@ const searchWithGemini = async (query) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. **It is critical that the deal you find is for the exact model name provided: "${productName}". Do not substitute a 'Pro', 'Plus', or 'Ultra' version if it is not in the user's request.** Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals for the correct model, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Do not return a standard full-price retail listing. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
     
     const payload = {
         contents: [{ parts: [{ text: query }] }],
@@ -18,7 +18,6 @@ const searchWithGemini = async (query) => {
     };
 
     try {
-        // Give Gemini a generous 20 seconds for its more complex search
         console.log(`Querying Gemini with a 20-second timeout for: ${query}`);
         const response = await axios.post(GEMINI_API_ENDPOINT, payload, { timeout: 20000 });
 
@@ -67,13 +66,13 @@ const searchGoogle = async (query) => {
 
     try {
         console.log(`Falling back to Google Custom Search API for query: ${query}`);
-        const response = await axios.get(url, { timeout: 8000 }); // 8-second timeout for the faster search
+        const response = await axios.get(url, { timeout: 8000 });
         const firstResult = response.data.items && response.data.items[0];
 
         if (firstResult) {
             console.log("Found Google Search result:", firstResult.title);
             return {
-                title: `See Deal: ${firstResult.title}`,
+                title: `See Offer: ${firstResult.title}`,
                 url: firstResult.link,
             };
         }
@@ -91,13 +90,13 @@ exports.handler = async (event) => {
   const { productName, storage } = event.queryStringParameters;
   
   const geminiQuery = `User request: Find the best current deal in the United States on the ${productName} (${storage}). Analyze prices, trade-ins, and gift card offers from major US retailers.`;
-  const googleApiQuery = `best price for "${productName}" ${storage}`;
+  const googleApiQuery = `"${productName}" ${storage} sale deal offer promotion`;
 
   let deal = null;
 
   try {
     // 1. Try Gemini with Grounding first
-    deal = await searchWithGemini(geminiQuery);
+    deal = await searchWithGemini(geminiQuery, productName);
 
     // 2. If Gemini fails, fall back to the standard Google Custom Search API
     if (!deal) {
@@ -125,6 +124,8 @@ exports.handler = async (event) => {
     body: JSON.stringify({ deal }),
   };
 };
+
+
 
 
 
