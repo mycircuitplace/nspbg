@@ -294,40 +294,52 @@ const backgroundStyle = {
   backgroundImage: `url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="20" height="20" fill="%23f9fafb"/%3E%3Ccircle cx="1" cy="1" r="1" fill="%23e5e7eb"/%3E%3C/svg%3E')`,
 };
 
-const getInitialRecommendations = (answers, count = 7) => {
+const getRecommendations = (answers) => {
     let scores = {};
     const budgetOrder = { 'budget': 1, 'standard': 2, 'premium': 3, 'ultra-premium': 4 };
     const userBudgetLevel = budgetOrder[answers.budget];
 
+    // --- Dynamic Price Depreciation Logic ---
+    const getEffectiveBudgetCategory = (phone) => {
+        const basePriceMap = { 'budget': 350, 'standard': 600, 'premium': 1000, 'ultra-premium': 1400 };
+        const yearsOld = 2025 - phone.releaseYear;
+        const depreciationFactor = Math.pow(0.8, yearsOld); // 20% depreciation per year
+        const effectivePrice = basePriceMap[phone.budgetCategory] * depreciationFactor;
+
+        if (effectivePrice < 400) return 'budget';
+        if (effectivePrice < 800) return 'standard';
+        if (effectivePrice < 1200) return 'premium';
+        return 'ultra-premium';
+    };
+
     PRODUCT_DATABASE.forEach(phone => {
         scores[phone.id] = 0;
-        const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
+        const effectiveBudgetCategory = getEffectiveBudgetCategory(phone);
+        const phoneBudgetLevel = budgetOrder[effectiveBudgetCategory];
 
-        if (phoneBudgetLevel > userBudgetLevel + 1) { // Allow one level up
-            scores[phone.id] -= 2000;
+        // Flexible Budget Penalty
+        if (phoneBudgetLevel > userBudgetLevel) {
+            const budgetDifference = phoneBudgetLevel - userBudgetLevel;
+            if (budgetDifference === 1) {
+                scores[phone.id] -= 50;
+            } else {
+                scores[phone.id] -= 1000;
+            }
         }
 
         if (answers.ecosystem === 'apple' && phone.ecosystem !== 'apple') {
-            scores[phone.id] -= 2000;
+            scores[phone.id] -= 1000;
         } else if (answers.ecosystem === 'android' && phone.ecosystem !== 'android') {
-             scores[phone.id] -= 2000;
+             scores[phone.id] -= 1000;
         }
 
         const storageNeedsMap = { light: 128, average: 256, power: 512 };
         const requiredStorage = storageNeedsMap[answers.storage];
         const hasAdequateStorage = phone.storageOptions.some(option => parseInt(option) >= requiredStorage);
         if(!hasAdequateStorage) {
-            scores[phone.id] -= 2000;
+            scores[phone.id] -= 100;
         }
-    });
-    
-    // Filter out disqualified phones before scoring
-    const qualifiedPhones = PRODUCT_DATABASE.filter(phone => scores[phone.id] > -1000);
 
-    qualifiedPhones.forEach(phone => {
-        const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
-        scores[phone.id] = scores[phone.id] || 0; // Ensure score is initialized
-        
         scores[phone.id] += 20;
 
         if (answers.priorities) {
@@ -340,8 +352,10 @@ const getInitialRecommendations = (answers, count = 7) => {
                     if (phone.tags.includes('price')) {
                          scores[phone.id] += weight * 5;
                     }
-                } else if (phone.tags.includes(prio)) {
-                    scores[phone.id] += weight * 5;
+                } else {
+                    if (phone.tags.includes(prio)) {
+                        scores[phone.id] += weight * 5;
+                    }
                 }
             });
         }
@@ -367,15 +381,42 @@ const getInitialRecommendations = (answers, count = 7) => {
         if (phone.releaseYear === currentYear) {
             scores[phone.id] += isValuePriority ? 5 : 15;
         }
+        if (phone.name.includes('Pixel 9') && !isValuePriority) {
+             const newerModelExistsInBudget = PRODUCT_DATABASE.some(p => p.name.includes('Pixel 10') && budgetOrder[getEffectiveBudgetCategory(p)] <= userBudgetLevel);
+             if (newerModelExistsInBudget) {
+                scores[phone.id] -= 25;
+             }
+        }
     });
 
-    const sortedPhoneIds = qualifiedPhones.map(p => p.id).sort((a, b) => scores[b] - scores[a]);
-    return sortedPhoneIds.slice(0, count).map(id => {
+    const sortedPhoneIds = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+    let top3Ids = sortedPhoneIds.slice(0, 3);
+
+    if (answers.features === 'foldable') {
+        const top3HasFoldable = top3Ids.some(id => PRODUCT_DATABASE.find(p => p.id === id).tags.includes('foldable'));
+        
+        if (!top3HasFoldable) {
+            const foldableCandidates = PRODUCT_DATABASE
+                .filter(phone => phone.tags.includes('foldable') && scores[phone.id] > -500)
+                .sort((a, b) => scores[b.id] - scores[a.id]);
+
+            if (foldableCandidates.length > 0) {
+                const bestFoldableId = foldableCandidates[0].id;
+                if (!top3Ids.includes(bestFoldableId)) {
+                    top3Ids[2] = bestFoldableId; 
+                }
+            }
+        }
+    }
+
+
+    return top3Ids.map(id => {
         const phone = PRODUCT_DATABASE.find(p => p.id === id);
         const storageNeedsMap = { light: 128, average: 256, power: 512 };
         const requiredStorage = storageNeedsMap[answers.storage];
         const recommendedStorage = phone.storageOptions.find(opt => parseInt(opt) >= requiredStorage) || phone.storageOptions[0];
-        return {...phone, recommendedStorage, initialScore: scores[id]};
+
+        return {...phone, recommendedStorage: recommendedStorage};
     });
 };
 
@@ -384,8 +425,6 @@ const App = () => {
     const [journeyStarted, setJourneyStarted] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [finalRecommendations, setFinalRecommendations] = useState([]);
     const [showResults, setShowResults] = useState(false);
 
     useEffect(() => {
@@ -408,7 +447,7 @@ const App = () => {
             if (currentQuestionIndex < questions.length - 1) {
                 setCurrentQuestionIndex(currentQuestionIndex + 1);
             } else {
-                setIsAnalyzing(true);
+                setShowResults(true);
             }
         }
     };
@@ -417,15 +456,9 @@ const App = () => {
          if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
-            setIsAnalyzing(true);
+            setShowResults(true);
         }
     }
-    
-    const onAnalysisComplete = (recommendations) => {
-        setFinalRecommendations(recommendations);
-        setIsAnalyzing(false);
-        setShowResults(true);
-    };
 
     const resetRankedChoice = (questionId) => {
         setAnswers(prev => ({ ...prev, [questionId]: [] }));
@@ -436,69 +469,52 @@ const App = () => {
         setCurrentQuestionIndex(0);
         setShowResults(false);
         setJourneyStarted(false);
-        setIsAnalyzing(false);
-        setFinalRecommendations([]);
     };
 
     if (!journeyStarted) {
-        return <WelcomeScreen onStart={() => setJourneyStarted(true)} />;
+        return (
+             <div style={backgroundStyle} className="relative min-h-screen flex flex-col items-center justify-center text-gray-800 p-4 pt-20">
+                <header className="absolute top-0 left-0 right-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
+                    <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
+                </header>
+                <div className="text-center max-w-2xl">
+                    <h1 className="text-4xl md:text-5xl font-bold text-[#002D3E]">Find Your Next Smartphone</h1>
+                    <p className="text-lg text-gray-600 mt-4">
+                        Tired of confusing specs and endless reviews? This simple guide asks a few questions about your needs and habits to give you a personalized recommendation.
+                    </p>
+                    <div className="mt-8 text-left space-y-6">
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">1. Answer Questions</h3>
+                           <p className="text-gray-600">Quickly go through our simple, non-technical questionnaire.</p>
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">2. Get Recommendations</h3>
+                           <p className="text-gray-600">Instantly see your top 3 matches based on your unique profile.</p>
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-black text-[#002D3E]">3. Find the Best Deal</h3>
+                           <p className="text-gray-600">We'll search the web for the best price on your recommended phone.</p>
+                       </div>
+                    </div>
+                    <button 
+                        onClick={() => setJourneyStarted(true)}
+                        className="mt-10 bg-[#00A99D] text-white font-bold py-4 px-8 rounded-lg hover:bg-[#0084A8] transition-colors shadow-lg text-xl"
+                    >
+                        Let's Get Started
+                    </button>
+                </div>
+            </div>
+        );
     }
-    
-    if (isAnalyzing) {
-        return <AnalyzingScreen answers={answers} onComplete={onAnalysisComplete} />
-    }
+
 
     if (showResults) {
-        return <ResultsDisplay answers={answers} recommendations={finalRecommendations} onRestart={handleRestart} />;
+        return <ResultsDisplay answers={answers} onRestart={handleRestart} />;
     }
 
-    return <QuestionScreen 
-                currentQuestion={questions[currentQuestionIndex]}
-                answers={answers}
-                progress={(currentQuestionIndex / questions.length) * 100}
-                handleAnswer={handleAnswer}
-                resetRankedChoice={resetRankedChoice}
-                handleRankedChoiceNext={handleRankedChoiceNext}
-            />;
-};
-
-// --- Child Components ---
-
-const WelcomeScreen = ({ onStart }) => (
-     <div style={backgroundStyle} className="relative min-h-screen flex flex-col items-center justify-center text-gray-800 p-4 pt-20">
-        <header className="absolute top-0 left-0 right-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
-            <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
-        </header>
-        <div className="text-center max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#002D3E]">Find Your Next Smartphone</h1>
-            <p className="text-lg text-gray-600 mt-4">
-                Tired of confusing specs and endless reviews? This simple guide asks a few questions about your needs and habits to give you a personalized recommendation.
-            </p>
-            <div className="mt-8 text-left space-y-6">
-               <div>
-                   <h3 className="text-xl font-black text-[#002D3E]">1. Answer Questions</h3>
-                   <p className="text-gray-600">Quickly go through our simple, non-technical questionnaire.</p>
-               </div>
-               <div>
-                   <h3 className="text-xl font-black text-[#002D3E]">2. Get Recommendations</h3>
-                   <p className="text-gray-600">Instantly see your top 3 matches based on your unique profile.</p>
-               </div>
-               <div>
-                   <h3 className="text-xl font-black text-[#002D3E]">3. Find the Best Deal</h3>
-                   <p className="text-gray-600">We'll search the web for the best price on your recommended phone.</p>
-               </div>
-            </div>
-            <button 
-                onClick={onStart}
-                className="mt-10 bg-[#00A99D] text-white font-bold py-4 px-8 rounded-lg hover:bg-[#0084A8] transition-colors shadow-lg text-xl"
-            >
-                Let's Get Started
-            </button>
-        </div>
-    </div>
-);
-
-const QuestionScreen = ({ currentQuestion, answers, progress, handleAnswer, resetRankedChoice, handleRankedChoiceNext }) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    const progress = (currentQuestionIndex / questions.length) * 100;
+    
     const isRankedChoice = currentQuestion.type === 'ranked-choice';
     const rankedAnswers = answers[currentQuestion.id] || [];
 
@@ -518,7 +534,7 @@ const QuestionScreen = ({ currentQuestion, answers, progress, handleAnswer, rese
                 <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-[#002D3E]">{currentQuestion.text}</h2>
 
                 <div className={`grid gap-4 ${isRankedChoice ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
-                    {currentQuestion.options.map((option) => {
+                    {currentQuestion.options.map((option, index) => {
                         const isSelected = isRankedChoice ? rankedAnswers.includes(option.id) : answers[currentQuestion.id] === option.id;
                         const rank = isRankedChoice && isSelected ? rankedAnswers.indexOf(option.id) + 1 : null;
                         
@@ -561,143 +577,87 @@ const QuestionScreen = ({ currentQuestion, answers, progress, handleAnswer, rese
     );
 };
 
-const AnalyzingScreen = ({ answers, onComplete }) => {
-    const [progress, setProgress] = useState(0);
+const ResultsDisplay = ({ answers, onRestart }) => {
+    const [recommendations, setRecommendations] = useState([]);
+    const [deals, setDeals] = useState({});
+    const [progress, setProgress] = useState({});
+
+    const fetchBestDeal = React.useCallback(async (productName, storage) => {
+        const controller = new AbortController();
+        const timeoutDuration = 30000; 
+        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+        const baseUrl = window.location.origin;
+
+        try {
+            const response = await fetch(`${baseUrl}/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                 const errorBody = await response.text();
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}. Server response: ${errorBody}`);
+            }
+            const data = await response.json();
+            if (!data.deal) {
+                throw new Error("Deal data not found in response");
+            }
+            return data.deal;
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error("Detailed error fetching deal:", error);
+            
+            const query = `best deal on ${productName} ${storage}`;
+            const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            return {
+                url: url,
+                title: `Find Best Deal on Google`
+            };
+        }
+    }, []);
 
     useEffect(() => {
-        const analyze = async () => {
-            const candidates = getInitialRecommendations(answers, 7);
-            const totalCandidates = candidates.length;
-            let completedSearches = 0;
+        const topRecs = getRecommendations(answers);
+        setRecommendations(topRecs);
 
-            const dealPromises = candidates.map(async (candidate) => {
-                const deal = await fetchBestDeal(candidate.name, candidate.recommendedStorage);
-                completedSearches++;
-                setProgress((completedSearches / totalCandidates) * 100);
-                return { ...candidate, deal };
+        const fetchAllDeals = async () => {
+            const dealPromises = topRecs.map(rec => {
+                const id = rec.id;
+                const duration = 30000;
+                const startTime = Date.now();
+                
+                const intervalId = setInterval(() => {
+                    const elapsedTime = Date.now() - startTime;
+                    const currentProgress = Math.min(100, (elapsedTime / duration) * 100);
+                    setProgress(prev => ({ ...prev, [id]: currentProgress }));
+
+                    if (currentProgress >= 100) {
+                        clearInterval(intervalId);
+                    }
+                }, 100);
+
+                return fetchBestDeal(rec.name, rec.recommendedStorage).then(deal => {
+                    clearInterval(intervalId);
+                    setProgress(prev => ({ ...prev, [id]: 100 }));
+                    return { id, deal };
+                });
             });
 
-            const candidatesWithDeals = await Promise.all(dealPromises);
-            
-            // Re-score based on deals
-            candidatesWithDeals.forEach(candidate => {
-                // If a specific deal was found (not the fallback Google link), give it a significant bonus
-                if (candidate.deal && !candidate.deal.title.includes("Google")) {
-                    candidate.initialScore += 50;
-                }
-            });
-            
-            const finalSortedCandidates = candidatesWithDeals.sort((a,b) => b.initialScore - a.initialScore);
-            onComplete(finalSortedCandidates.slice(0,3));
+            const settledDeals = await Promise.all(dealPromises);
+            const dealsMap = settledDeals.reduce((acc, { id, deal }) => {
+                acc[id] = deal;
+                return acc;
+            }, {});
+            setDeals(dealsMap);
         };
-
-        analyze();
-    }, [answers, onComplete]);
-
-    return (
-         <div style={backgroundStyle} className="min-h-screen flex flex-col items-center justify-center text-gray-800 p-4">
-            <h2 className="text-3xl font-bold text-[#002D3E]">Analyzing the Best Deals...</h2>
-            <p className="text-lg text-gray-600 mt-2">This may take a moment.</p>
-            <div className="w-full max-w-md mt-8 bg-gray-200 rounded-full h-4">
-                <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-4 rounded-full transition-width duration-500" style={{ width: `${progress}%` }}></div>
-            </div>
-        </div>
-    );
-};
-
-const fetchBestDeal = async (productName, storage) => {
-    const baseUrl = window.location.origin;
-    try {
-        const response = await fetch(`${baseUrl}/.netlify/functions/fetch-deal?productName=${encodeURIComponent(productName)}&storage=${encodeURIComponent(storage)}`);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        return data.deal;
-    } catch (error) {
-        console.error("Error fetching deal for", productName, ":", error);
-        const query = `best deal on ${productName} ${storage}`;
-        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-        return { url, title: `Find Best Deal on Google` };
-    }
-};
-
-
-// --- Results Page Helper Components ---
-// (Moved here to fix definition order)
-
-const getPriorityText = (key) => {
-    for (const q of questions) {
-        const option = q.options.find(opt => opt.id === key);
-        if (option) return option.text;
-    }
-    return key;
-};
-
-const generateMatchReasons = (phone, answers) => {
-    let reasons = [];
-    if (answers.priorities?.[0] && phone.tags.includes(answers.priorities[0])) {
-        const topPrio = answers.priorities[0];
-        if (topPrio === 'camera') reasons.push('A top-tier camera for stunning photos');
-        if (topPrio === 'performance') reasons.push('Blazing-fast performance for demanding tasks');
-        if (topPrio === 'battery') reasons.push('An all-day battery to keep you going');
-        if (topPrio === 'price') reasons.push('Exceptional value for the money');
-    }
-    if (answers.features === 'stylus' && phone.tags.includes('stylus')) reasons.push('A perfect creative tool with its built-in stylus');
-    if (answers.features === 'foldable' && phone.tags.includes('foldable')) reasons.push('A futuristic folding screen for multitasking');
-    if (answers.gaming === 'gaming-pro' && phone.tags.includes('gaming-pro')) reasons.push('Built for competitive, high-performance gaming');
-    if (answers.durability === 'rugged' && phone.tags.includes('rugged')) reasons.push('Extra durable for peace of mind');
-    if (reasons.length < 3 && phone.tags.includes(answers.screenSize)) reasons.push(answers.screenSize === 'large-screen' ? 'An immersive large display' : 'A comfortable compact design');
-    if (reasons.length < 3 && phone.tags.includes(answers.longevity)) reasons.push('Built to last with long-term software support');
-    return reasons.slice(0, 3);
-};
-
-const TechProfile = ({ answers }) => {
-    const getPersona = () => {
-        const topPrio = answers.priorities?.[0];
-        if (topPrio === 'price' || answers.budget === 'budget') return "The Savvy Shopper";
-        if (topPrio === 'performance' && answers.gaming === 'gaming-pro') return "The Power Player";
-        if (topPrio === 'camera' && answers.cameraPrio?.[0] === 'portraits') return "The Memory Maker";
-        if (topPrio === 'battery' && answers.longevity === 'long-support') return "The Marathoner";
-        return "The Balanced User";
-    };
-
-    const ProfileItem = ({ title, value }) => (
-        <div>
-            <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider">{title}</h4>
-            <p className="text-gray-800 text-lg">{getPriorityText(value)}</p>
-        </div>
-    );
-
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 mt-12">
-            <h3 className="text-2xl font-bold text-[#002D3E] mb-2">Your Tech Persona: <span className="text-[#00A99D]">{getPersona()}</span></h3>
-            <p className="text-gray-600 mb-6">Here's a summary of what you told us is important.</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-                <div>
-                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Priorities</h4>
-                    <ol className="list-decimal list-inside text-gray-800 space-y-1">
-                        {answers.priorities?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                    </ol>
-                </div>
-                 <div>
-                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Photo Style</h4>
-                     <ol className="list-decimal list-inside text-gray-800 space-y-1">
-                        {answers.cameraPrio?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                    </ol>
-                </div>
-                <div className="space-y-4">
-                     <ProfileItem title="Budget" value={answers.budget} />
-                     <ProfileItem title="Screen Size" value={answers.screenSize} />
-                </div>
-                <div className="space-y-4">
-                    <ProfileItem title="How Long You'll Keep It" value={answers.longevity} />
-                    <ProfileItem title="Durability" value={answers.durability} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const ResultsDisplay = ({ answers, recommendations, onRestart }) => {
+        
+        if (topRecs.length > 0) {
+            fetchAllDeals();
+        }
+    }, [answers, fetchBestDeal]);
+    
     return (
         <div style={backgroundStyle} className="min-h-screen text-gray-800">
              <header className="w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
@@ -727,9 +687,18 @@ const ResultsDisplay = ({ answers, recommendations, onRestart }) => {
                                 </div>
                                 
                                 <div className="mt-auto">
-                                     <a href={rec.deal.url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
-                                        {rec.deal.title}
-                                    </a>
+                                    {!deals[rec.id] ? (
+                                         <div>
+                                            <p className="text-sm text-gray-500 mb-2">Finding best deal...</p>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                <div className="bg-gradient-to-r from-[#00A99D] to-[#0084A8] h-2.5 rounded-full" style={{ width: `${progress[rec.id] || 0}%` }}></div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <a href={deals[rec.id].url} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#00A99D] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#0084A8] transition-colors shadow-md">
+                                            {deals[rec.id].title}
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         )
@@ -749,6 +718,8 @@ const ResultsDisplay = ({ answers, recommendations, onRestart }) => {
 };
 
 export default App;
+
+
 
 
 
