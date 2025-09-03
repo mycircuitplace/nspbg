@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-// Product Database
+// Product Database (Expanded as of September 2025)
 const PRODUCT_DATABASE = [
-    // --- iPhones ---
+    // --- Apple iPhone ---
     {
-        id: 'iphone-16-pro-max',
+        id: 'apple-iphone-16-pro-max',
         name: 'Apple iPhone 16 Pro Max',
         ecosystem: 'apple',
         budgetCategory: 'ultra-premium',
@@ -12,15 +12,7 @@ const PRODUCT_DATABASE = [
         storageOptions: ['256GB', '512GB', '1TB'],
     },
     {
-        id: 'iphone-16',
-        name: 'Apple iPhone 16',
-        ecosystem: 'apple',
-        budgetCategory: 'premium',
-        tags: ['performance', 'battery', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support'],
-        storageOptions: ['128GB', '256GB', '512GB'],
-    },
-    {
-        id: 'iphone-16-pro',
+        id: 'apple-iphone-16-pro',
         name: 'Apple iPhone 16 Pro',
         ecosystem: 'apple',
         budgetCategory: 'premium',
@@ -28,15 +20,7 @@ const PRODUCT_DATABASE = [
         storageOptions: ['128GB', '256GB', '512GB', '1TB'],
     },
     {
-        id: 'iphone-15',
-        name: 'Apple iPhone 15',
-        ecosystem: 'apple',
-        budgetCategory: 'standard',
-        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support'],
-        storageOptions: ['128GB', '256GB', '512GB'],
-    },
-    {
-        id: 'iphone-16-plus',
+        id: 'apple-iphone-16-plus',
         name: 'Apple iPhone 16 Plus',
         ecosystem: 'apple',
         budgetCategory: 'premium',
@@ -44,54 +28,38 @@ const PRODUCT_DATABASE = [
         storageOptions: ['128GB', '256GB', '512GB'],
     },
     {
-        id: 'iphone-se',
+        id: 'apple-iphone-16',
+        name: 'Apple iPhone 16',
+        ecosystem: 'apple',
+        budgetCategory: 'premium',
+        tags: ['performance', 'battery', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support'],
+        storageOptions: ['128GB', '256GB', '512GB'],
+    },
+    {
+        id: 'apple-iphone-15',
+        name: 'Apple iPhone 15',
+        ecosystem: 'apple',
+        budgetCategory: 'standard',
+        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support', 'price'],
+        storageOptions: ['128GB', '256GB', '512GB'],
+    },
+    {
+        id: 'apple-iphone-se-3rd-gen',
         name: 'Apple iPhone SE (3rd Gen)',
         ecosystem: 'apple',
         budgetCategory: 'budget',
-        tags: ['performance', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'long-support'],
+        tags: ['performance', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'long-support', 'price'],
         storageOptions: ['64GB', '128GB', '256GB'],
     },
 
-    // --- Samsung Phones ---
+    // --- Samsung Galaxy ---
     {
         id: 'samsung-galaxy-s25-ultra',
         name: 'Samsung Galaxy S25 Ultra',
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
-        tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'stylus', 'long-support'],
+        tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'stylus', 'long-support', 'extra-features'],
         storageOptions: ['256GB', '512GB', '1TB'],
-    },
-     {
-        id: 'samsung-galaxy-s24-ultra',
-        name: 'Samsung Galaxy S24 Ultra',
-        ecosystem: 'android',
-        budgetCategory: 'premium',
-        tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'stylus', 'long-support'],
-        storageOptions: ['256GB', '512GB', '1TB'],
-    },
-    {
-        id: 'samsung-galaxy-a16',
-        name: 'Samsung Galaxy A16 5G',
-        ecosystem: 'android',
-        budgetCategory: 'budget',
-        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average'],
-        storageOptions: ['128GB'],
-    },
-    {
-        id: 'samsung-galaxy-s25',
-        name: 'Samsung Galaxy S25',
-        ecosystem: 'android',
-        budgetCategory: 'premium',
-        tags: ['performance', 'camera', 'portraits', 'small-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'long-support'],
-        storageOptions: ['128GB', '256GB'],
-    },
-    {
-        id: 'samsung-galaxy-a56',
-        name: 'Samsung Galaxy A56 5G',
-        ecosystem: 'android',
-        budgetCategory: 'standard',
-        tags: ['battery', 'camera', 'point-and-shoot', 'large-screen', 'standard-durability', 'fast-charge', 'long-support-average'],
-        storageOptions: ['128GB', '256GB'],
     },
     {
         id: 'samsung-galaxy-s25-plus',
@@ -102,6 +70,22 @@ const PRODUCT_DATABASE = [
         storageOptions: ['256GB', '512GB'],
     },
     {
+        id: 'samsung-galaxy-s25',
+        name: 'Samsung Galaxy S25',
+        ecosystem: 'android',
+        budgetCategory: 'premium',
+        tags: ['performance', 'camera', 'portraits', 'small-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'long-support'],
+        storageOptions: ['128GB', '256GB'],
+    },
+    {
+        id: 'samsung-galaxy-z-fold-7',
+        name: 'Samsung Galaxy Z Fold 7',
+        ecosystem: 'android',
+        budgetCategory: 'ultra-premium',
+        tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'wireless-charge', 'foldable', 'extra-features', 'long-support-average'],
+        storageOptions: ['256GB', '512GB', '1TB'],
+    },
+    {
         id: 'samsung-galaxy-z-flip-6',
         name: 'Samsung Galaxy Z Flip 6',
         ecosystem: 'android',
@@ -110,71 +94,138 @@ const PRODUCT_DATABASE = [
         storageOptions: ['256GB', '512GB'],
     },
     {
-        id: 'samsung-galaxy-a36',
+        id: 'samsung-galaxy-a56-5g',
+        name: 'Samsung Galaxy A56 5G',
+        ecosystem: 'android',
+        budgetCategory: 'standard',
+        tags: ['battery', 'camera', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
+        storageOptions: ['128GB', '256GB'],
+    },
+    {
+        id: 'samsung-galaxy-a36-5g',
         name: 'Samsung Galaxy A36 5G',
         ecosystem: 'android',
         budgetCategory: 'budget',
-        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average'],
+        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
         storageOptions: ['128GB'],
     },
-     {
-        id: 'samsung-galaxy-a15',
-        name: 'Samsung Galaxy A15 5G',
+    {
+        id: 'samsung-galaxy-a16-5g',
+        name: 'Samsung Galaxy A16 5G',
         ecosystem: 'android',
         budgetCategory: 'budget',
-        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average'],
-        storageOptions: ['128GB'],
+        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
+        storageOptions: ['64GB', '128GB'],
     },
 
-
-    // --- Google & Other Phones ---
+    // --- Google Pixel ---
+    {
+        id: 'google-pixel-10-pro',
+        name: 'Google Pixel 10 Pro',
+        ecosystem: 'android',
+        budgetCategory: 'ultra-premium',
+        tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
+        storageOptions: ['128GB', '256GB', '512GB', '1TB'],
+    },
+    {
+        id: 'google-pixel-10',
+        name: 'Google Pixel 10',
+        ecosystem: 'android',
+        budgetCategory: 'premium',
+        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
+        storageOptions: ['128GB', '256GB'],
+    },
+    {
+        id: 'google-pixel-9a',
+        name: 'Google Pixel 9a',
+        ecosystem: 'android',
+        budgetCategory: 'budget',
+        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'extra-features', 'long-support', 'price'],
+        storageOptions: ['128GB'],
+    },
     {
         id: 'google-pixel-9-pro',
         name: 'Google Pixel 9 Pro',
         ecosystem: 'android',
         budgetCategory: 'premium',
-        tags: ['performance', 'battery', 'camera', 'portraits', 'point-and-shoot', 'large-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
-        storageOptions: ['128GB', '256GB', '512GB'],
+        tags: ['performance', 'battery', 'camera', 'portraits', 'point-and-shoot', 'zoom', 'large-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
+        storageOptions: ['128GB', '256GB', '512GB', '1TB'],
     },
     {
         id: 'google-pixel-9',
         name: 'Google Pixel 9',
         ecosystem: 'android',
         budgetCategory: 'standard',
-        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
+        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support', 'price'],
         storageOptions: ['128GB', '256GB'],
     },
     {
-        id: 'google-pixel-8a',
-        name: 'Google Pixel 8a',
+        id: 'google-pixel-fold',
+        name: 'Google Pixel Fold',
         ecosystem: 'android',
-        budgetCategory: 'budget',
-        tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'extra-features', 'long-support'],
-        storageOptions: ['128GB'],
+        budgetCategory: 'ultra-premium',
+        tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-casual', 'style-focus', 'wireless-charge', 'foldable', 'extra-features', 'long-support'],
+        storageOptions: ['256GB', '512GB'],
     },
-    {
-        id: 'motorola-moto-g-stylus-2024',
-        name: 'Motorola Moto G Stylus (2024)',
-        ecosystem: 'android',
-        budgetCategory: 'budget',
-        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'stylus', 'long-support-average'],
-        storageOptions: ['128GB', '256GB'],
-    },
-     {
-        id: 'motorola-moto-g-power-2024',
-        name: 'Motorola Moto G Power (2024)',
-        ecosystem: 'android',
-        budgetCategory: 'budget',
-        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average'],
-        storageOptions: ['128GB'],
-    },
+
+    // --- OnePlus ---
     {
         id: 'oneplus-13',
         name: 'OnePlus 13',
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'gaming-pro', 'large-screen', 'standard-durability', 'fast-charge', 'long-support-average'],
+        storageOptions: ['256GB', '512GB', '1TB'],
+    },
+    {
+        id: 'oneplus-open',
+        name: 'OnePlus Open',
+        ecosystem: 'android',
+        budgetCategory: 'ultra-premium',
+        tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'foldable', 'long-support-average'],
+        storageOptions: ['512GB'],
+    },
+    {
+        id: 'oneplus-nord-n40',
+        name: 'OnePlus Nord N40 5G',
+        ecosystem: 'android',
+        budgetCategory: 'budget',
+        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'fast-charge', 'long-support-average', 'price'],
+        storageOptions: ['128GB'],
+    },
+
+    // --- Motorola ---
+    {
+        id: 'motorola-edge-plus-2025',
+        name: 'Motorola Edge+ (2025)',
+        ecosystem: 'android',
+        budgetCategory: 'premium',
+        tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'wireless-charge', 'long-support-average'],
         storageOptions: ['256GB', '512GB'],
+    },
+    {
+        id: 'motorola-razr-plus-2025',
+        name: 'Motorola Razr+ (2025)',
+        ecosystem: 'android',
+        budgetCategory: 'premium',
+        tags: ['performance', 'camera', 'small-screen', 'style-focus', 'wireless-charge', 'foldable', 'long-support-average'],
+        storageOptions: ['256GB', '512GB'],
+    },
+    {
+        id: 'motorola-moto-g-stylus-5g-2025',
+        name: 'Moto G Stylus 5G (2025)',
+        ecosystem: 'android',
+        budgetCategory: 'standard',
+        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'stylus', 'long-support-average', 'price'],
+        storageOptions: ['128GB', '256GB'],
+    },
+    {
+        id: 'motorola-moto-g-power-5g-2025',
+        name: 'Moto G Power 5G (2025)',
+        ecosystem: 'android',
+        budgetCategory: 'budget',
+        tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
+        storageOptions: ['128GB'],
     },
 ];
 
@@ -200,30 +251,50 @@ const backgroundStyle = {
 
 const getRecommendations = (answers) => {
     let scores = {};
+    const budgetOrder = { 'budget': 1, 'standard': 2, 'premium': 3, 'ultra-premium': 4 };
 
     PRODUCT_DATABASE.forEach(phone => {
         scores[phone.id] = 0;
 
-        // Ecosystem check is important. If a user is in the Apple ecosystem, only recommend iPhones.
+        // Ecosystem check
         if (answers.ecosystem === 'apple' && phone.ecosystem !== 'apple') {
-            scores[phone.id] -= 1000; // Heavily penalize non-Apple phones for Apple users
+            scores[phone.id] -= 1000;
         } else if (answers.ecosystem === 'android' && phone.ecosystem !== 'android') {
-             scores[phone.id] -= 1000; // Optional: Penalize non-Android for Android users
+             scores[phone.id] -= 1000;
         } else {
              scores[phone.id] += 20;
         }
 
-        // Budget
+        // Base score for matching the user's selected budget
         if (answers.budget === phone.budgetCategory) {
             scores[phone.id] += 15;
         }
 
         // Ranked Priorities
-        if(answers.priorities) {
+        if (answers.priorities) {
             answers.priorities.forEach((prio, index) => {
-                const weight = 4 - index;
-                if (phone.tags.includes(prio)) {
-                    scores[phone.id] += weight * 5;
+                const weight = 4 - index; // 1st = 4 points, 2nd = 3, etc.
+
+                if (prio === 'price') {
+                    // --- Smart "Best Value" Logic ---
+                    const userBudgetLevel = budgetOrder[answers.budget];
+                    const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
+
+                    // Give a large, weighted bonus if a phone is in a cheaper category than the user's max budget
+                    if (phoneBudgetLevel < userBudgetLevel) {
+                        const budgetDifference = userBudgetLevel - phoneBudgetLevel;
+                        scores[phone.id] += weight * 10 * budgetDifference; 
+                    }
+                    // Give a smaller bonus if the phone is known for being a good value in its class (has the 'price' tag)
+                    if (phone.tags.includes('price')) {
+                         scores[phone.id] += weight * 5;
+                    }
+
+                } else {
+                    // Standard logic for other priorities (camera, performance, battery)
+                    if (phone.tags.includes(prio)) {
+                        scores[phone.id] += weight * 5;
+                    }
                 }
             });
         }
@@ -250,9 +321,7 @@ const getRecommendations = (answers) => {
         const storageNeedsMap = { light: 128, average: 256, power: 512 };
         const requiredStorage = storageNeedsMap[answers.storage];
         const hasAdequateStorage = phone.storageOptions.some(option => parseInt(option) >= requiredStorage);
-        if(hasAdequateStorage) {
-            scores[phone.id] += 10;
-        } else {
+        if(!hasAdequateStorage) {
             scores[phone.id] -= 100;
         }
     });
@@ -432,7 +501,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 
     const fetchBestDeal = React.useCallback(async (productName, storage) => {
         const controller = new AbortController();
-        const timeoutDuration = 30000; // Match this with the progress bar duration
+        const timeoutDuration = 30000; 
         const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
         const baseUrl = window.location.origin;
 
@@ -473,7 +542,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
         const fetchAllDeals = async () => {
             const dealPromises = topRecs.map(rec => {
                 const id = rec.id;
-                const duration = 30000; // Match this with the fetch timeout
+                const duration = 30000;
                 const startTime = Date.now();
                 
                 const intervalId = setInterval(() => {
