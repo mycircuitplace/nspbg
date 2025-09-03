@@ -258,8 +258,6 @@ const getRecommendations = (answers) => {
         scores[phone.id] = 0;
         const phoneBudgetLevel = budgetOrder[phone.budgetCategory];
 
-        // --- Start with Penalties to filter out bad matches ---
-        
         if (phoneBudgetLevel > userBudgetLevel) {
             scores[phone.id] -= 1000;
         }
@@ -277,14 +275,11 @@ const getRecommendations = (answers) => {
             scores[phone.id] -= 100;
         }
 
-        // --- Then, add points for good matches ---
-
         scores[phone.id] += 20;
 
         if (answers.priorities) {
             answers.priorities.forEach((prio, index) => {
                 const weight = 4 - index;
-
                 if (prio === 'price') {
                     if (phoneBudgetLevel < userBudgetLevel) {
                         const budgetDifference = userBudgetLevel - phoneBudgetLevel;
@@ -318,8 +313,29 @@ const getRecommendations = (answers) => {
         });
     });
 
-    const sortedPhones = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
-    return sortedPhones.slice(0, 3).map(id => {
+    const sortedPhoneIds = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+    let top3Ids = sortedPhoneIds.slice(0, 3);
+
+    // --- Special Logic for Foldable Phones ---
+    if (answers.features === 'foldable') {
+        const top3HasFoldable = top3Ids.some(id => PRODUCT_DATABASE.find(p => p.id === id).tags.includes('foldable'));
+        
+        if (!top3HasFoldable) {
+            const foldableCandidates = PRODUCT_DATABASE
+                .filter(phone => phone.tags.includes('foldable') && scores[phone.id] > -500) // Ensure it's not heavily penalized
+                .sort((a, b) => scores[b.id] - scores[a.id]);
+
+            if (foldableCandidates.length > 0) {
+                const bestFoldableId = foldableCandidates[0].id;
+                if (!top3Ids.includes(bestFoldableId)) {
+                    top3Ids[2] = bestFoldableId; // Replace the last item
+                }
+            }
+        }
+    }
+
+
+    return top3Ids.map(id => {
         const phone = PRODUCT_DATABASE.find(p => p.id === id);
         const storageNeedsMap = { light: 128, average: 256, power: 512 };
         const requiredStorage = storageNeedsMap[answers.storage];
@@ -382,8 +398,8 @@ const App = () => {
 
     if (!journeyStarted) {
         return (
-             <div style={backgroundStyle} className="min-h-screen flex flex-col items-center justify-center text-gray-800 p-4">
-                <header className="absolute top-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
+             <div style={backgroundStyle} className="relative min-h-screen flex flex-col items-center justify-center text-gray-800 p-4 pt-20">
+                <header className="absolute top-0 left-0 right-0 w-full bg-[#002D3E] p-4 flex justify-center items-center shadow-md">
                     <img src="https://circuit.place/wp-content/uploads/2025/08/CPLogo-Either2.png" alt="Circuit Place Logo" className="h-10" />
                 </header>
                 <div className="text-center max-w-2xl">
@@ -485,111 +501,6 @@ const App = () => {
         </div>
     );
 };
-
-const getPriorityText = (key) => {
-    for (const q of questions) {
-        const option = q.options.find(opt => opt.id === key);
-        if (option) return option.text;
-    }
-    return key;
-};
-
-const generateMatchReasons = (phone, answers) => {
-    let reasons = [];
-    
-    // Priorities
-    if (answers.priorities && answers.priorities.length > 0) {
-        const topPrio = answers.priorities[0];
-        if (phone.tags.includes(topPrio)) {
-            let reasonText = '';
-            switch(topPrio) {
-                case 'camera': reasonText = 'A top-tier camera for stunning photos'; break;
-                case 'performance': reasonText = 'Blazing-fast performance for demanding tasks'; break;
-                case 'battery': reasonText = 'An all-day battery to keep you going'; break;
-                case 'price': reasonText = 'Exceptional value for the money'; break;
-                default: break;
-            }
-            if(reasonText) reasons.push(reasonText);
-        }
-    }
-
-    // Specific Features
-    if (answers.features === 'stylus' && phone.tags.includes('stylus')) {
-        reasons.push('A perfect creative tool with its built-in stylus');
-    }
-    if (answers.features === 'foldable' && phone.tags.includes('foldable')) {
-        reasons.push('A futuristic folding screen for multitasking');
-    }
-    if (answers.gaming === 'gaming-pro' && phone.tags.includes('gaming-pro')) {
-        reasons.push('Built for competitive, high-performance gaming');
-    }
-    if (answers.durability === 'rugged' && phone.tags.includes('rugged')) {
-        reasons.push('Extra durable for peace of mind');
-    }
-
-    // Fill with other matches if we don't have enough reasons yet
-    if (reasons.length < 3) {
-        if (phone.tags.includes(answers.screenSize)) {
-            reasons.push(answers.screenSize === 'large-screen' ? 'An immersive large display' : 'A comfortable compact design');
-        }
-    }
-     if (reasons.length < 3) {
-         if (phone.tags.includes(answers.longevity)) {
-             reasons.push('Built to last with long-term software support');
-         }
-     }
-
-    return reasons.slice(0, 3); // Return the top 3 most relevant reasons
-};
-
-
-const TechProfile = ({ answers }) => {
-    const getPersona = () => {
-        const topPrio = answers.priorities?.[0];
-        if (topPrio === 'price' || answers.budget === 'budget') return "The Savvy Shopper";
-        if (topPrio === 'performance' && answers.gaming === 'gaming-pro') return "The Power Player";
-        if (topPrio === 'camera' && answers.cameraPrio?.[0] === 'portraits') return "The Memory Maker";
-        if (topPrio === 'battery' && answers.longevity === 'long-support') return "The Marathoner";
-        return "The Balanced User";
-    };
-
-    const ProfileItem = ({ title, value }) => (
-        <div>
-            <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider">{title}</h4>
-            <p className="text-gray-800 text-lg">{getPriorityText(value)}</p>
-        </div>
-    );
-
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 mt-12">
-            <h3 className="text-2xl font-bold text-[#002D3E] mb-2">Your Tech Persona: <span className="text-[#00A99D]">{getPersona()}</span></h3>
-            <p className="text-gray-600 mb-6">Here's a summary of what you told us is important.</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-                <div>
-                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Priorities</h4>
-                    <ol className="list-decimal list-inside text-gray-800 space-y-1">
-                        {answers.priorities?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                    </ol>
-                </div>
-                 <div>
-                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Photo Style</h4>
-                     <ol className="list-decimal list-inside text-gray-800 space-y-1">
-                        {answers.cameraPrio?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
-                    </ol>
-                </div>
-                <div className="space-y-4">
-                     <ProfileItem title="Budget" value={answers.budget} />
-                     <ProfileItem title="Screen Size" value={answers.screenSize} />
-                </div>
-                <div className="space-y-4">
-                    <ProfileItem title="How Long You'll Keep It" value={answers.longevity} />
-                    <ProfileItem title="Durability" value={answers.durability} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
 
 const ResultsDisplay = ({ answers, onRestart }) => {
     const [recommendations, setRecommendations] = useState([]);
