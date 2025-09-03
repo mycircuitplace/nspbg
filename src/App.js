@@ -6,6 +6,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-16-pro-max',
         name: 'Apple iPhone 16 Pro Max',
+        releaseYear: 2025,
         ecosystem: 'apple',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'zoom', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'long-support'],
@@ -14,6 +15,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-16-pro',
         name: 'Apple iPhone 16 Pro',
+        releaseYear: 2025,
         ecosystem: 'apple',
         budgetCategory: 'premium',
         tags: ['performance', 'camera', 'zoom', 'small-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'long-support'],
@@ -22,6 +24,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-16-plus',
         name: 'Apple iPhone 16 Plus',
+        releaseYear: 2025,
         ecosystem: 'apple',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'camera', 'point-and-shoot', 'large-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support'],
@@ -30,6 +33,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-16',
         name: 'Apple iPhone 16',
+        releaseYear: 2025,
         ecosystem: 'apple',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support'],
@@ -38,6 +42,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-15',
         name: 'Apple iPhone 15',
+        releaseYear: 2024,
         ecosystem: 'apple',
         budgetCategory: 'standard',
         tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'standard-durability', 'wireless-charge', 'long-support', 'price'],
@@ -46,6 +51,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'apple-iphone-se-3rd-gen',
         name: 'Apple iPhone SE (3rd Gen)',
+        releaseYear: 2022,
         ecosystem: 'apple',
         budgetCategory: 'budget',
         tags: ['performance', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'long-support', 'price'],
@@ -56,6 +62,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-s25-ultra',
         name: 'Samsung Galaxy S25 Ultra',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'stylus', 'long-support', 'extra-features'],
@@ -64,6 +71,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-s25-plus',
         name: 'Samsung Galaxy S25+',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'camera', 'portraits', 'large-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'long-support'],
@@ -72,6 +80,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-s25',
         name: 'Samsung Galaxy S25',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'camera', 'portraits', 'small-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'long-support'],
@@ -80,6 +89,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-z-fold-7',
         name: 'Samsung Galaxy Z Fold 7',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'wireless-charge', 'foldable', 'extra-features', 'long-support-average'],
@@ -88,6 +98,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-z-flip-6',
         name: 'Samsung Galaxy Z Flip 6',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'gaming-casual', 'style-focus', 'wireless-charge', 'foldable', 'long-support-average'],
@@ -96,6 +107,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-a56-5g',
         name: 'Samsung Galaxy A56 5G',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'standard',
         tags: ['battery', 'camera', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
@@ -104,6 +116,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-a36-5g',
         name: 'Samsung Galaxy A36 5G',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'budget',
         tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
@@ -112,6 +125,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'samsung-galaxy-a16-5g',
         name: 'Samsung Galaxy A16 5G',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'budget',
         tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
@@ -122,6 +136,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-10-pro',
         name: 'Google Pixel 10 Pro',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'zoom', 'portraits', 'large-screen', 'gaming-pro', 'rugged', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
@@ -130,6 +145,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-10',
         name: 'Google Pixel 10',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
@@ -138,6 +154,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-9a',
         name: 'Google Pixel 9a',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'budget',
         tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'wireless-charge', 'extra-features', 'long-support', 'price'],
@@ -146,6 +163,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-9-pro',
         name: 'Google Pixel 9 Pro',
+        releaseYear: 2024,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'camera', 'portraits', 'point-and-shoot', 'zoom', 'large-screen', 'gaming-casual', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support'],
@@ -154,6 +172,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-9',
         name: 'Google Pixel 9',
+        releaseYear: 2024,
         ecosystem: 'android',
         budgetCategory: 'standard',
         tags: ['performance', 'camera', 'point-and-shoot', 'small-screen', 'standard-durability', 'fast-charge', 'wireless-charge', 'extra-features', 'long-support', 'price'],
@@ -162,6 +181,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'google-pixel-fold',
         name: 'Google Pixel Fold',
+        releaseYear: 2023,
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-casual', 'style-focus', 'wireless-charge', 'foldable', 'extra-features', 'long-support'],
@@ -172,6 +192,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'oneplus-13',
         name: 'OnePlus 13',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'gaming-pro', 'large-screen', 'standard-durability', 'fast-charge', 'long-support-average'],
@@ -180,6 +201,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'oneplus-open',
         name: 'OnePlus Open',
+        releaseYear: 2023,
         ecosystem: 'android',
         budgetCategory: 'ultra-premium',
         tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'foldable', 'long-support-average'],
@@ -188,6 +210,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'oneplus-nord-n40',
         name: 'OnePlus Nord N40 5G',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'budget',
         tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'fast-charge', 'long-support-average', 'price'],
@@ -198,6 +221,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'motorola-edge-plus-2025',
         name: 'Motorola Edge+ (2025)',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'battery', 'camera', 'large-screen', 'gaming-pro', 'style-focus', 'fast-charge', 'wireless-charge', 'long-support-average'],
@@ -206,6 +230,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'motorola-razr-plus-2025',
         name: 'Motorola Razr+ (2025)',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'premium',
         tags: ['performance', 'camera', 'small-screen', 'style-focus', 'wireless-charge', 'foldable', 'long-support-average'],
@@ -214,6 +239,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'motorola-moto-g-stylus-5g-2025',
         name: 'Moto G Stylus 5G (2025)',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'standard',
         tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'stylus', 'long-support-average', 'price'],
@@ -222,6 +248,7 @@ const PRODUCT_DATABASE = [
     {
         id: 'motorola-moto-g-power-5g-2025',
         name: 'Moto G Power 5G (2025)',
+        releaseYear: 2025,
         ecosystem: 'android',
         budgetCategory: 'budget',
         tags: ['battery', 'point-and-shoot', 'large-screen', 'standard-durability', 'long-support-average', 'price'],
@@ -311,24 +338,34 @@ const getRecommendations = (answers) => {
                 scores[phone.id] += 8;
             }
         });
+
+        // --- Newness Priority Logic ---
+        const isValuePriority = answers.priorities && (answers.priorities[0] === 'price' || answers.priorities[1] === 'price');
+        const currentYear = 2025; 
+
+        if (phone.releaseYear === currentYear) {
+            scores[phone.id] += isValuePriority ? 5 : 15;
+        }
+        if (phone.releaseYear === currentYear - 1 && !isValuePriority) {
+            scores[phone.id] -= 5;
+        }
     });
 
     const sortedPhoneIds = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
     let top3Ids = sortedPhoneIds.slice(0, 3);
 
-    // --- Special Logic for Foldable Phones ---
     if (answers.features === 'foldable') {
         const top3HasFoldable = top3Ids.some(id => PRODUCT_DATABASE.find(p => p.id === id).tags.includes('foldable'));
         
         if (!top3HasFoldable) {
             const foldableCandidates = PRODUCT_DATABASE
-                .filter(phone => phone.tags.includes('foldable') && scores[phone.id] > -500) // Ensure it's not heavily penalized
+                .filter(phone => phone.tags.includes('foldable') && scores[phone.id] > -500)
                 .sort((a, b) => scores[b.id] - scores[a.id]);
 
             if (foldableCandidates.length > 0) {
                 const bestFoldableId = foldableCandidates[0].id;
                 if (!top3Ids.includes(bestFoldableId)) {
-                    top3Ids[2] = bestFoldableId; // Replace the last item
+                    top3Ids[2] = bestFoldableId; 
                 }
             }
         }
@@ -497,6 +534,108 @@ const App = () => {
                         </button>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// --- Results Page Helper Components ---
+
+const getPriorityText = (key) => {
+    for (const q of questions) {
+        const option = q.options.find(opt => opt.id === key);
+        if (option) return option.text;
+    }
+    return key;
+};
+
+const generateMatchReasons = (phone, answers) => {
+    let reasons = [];
+    
+    if (answers.priorities && answers.priorities.length > 0) {
+        const topPrio = answers.priorities[0];
+        if (phone.tags.includes(topPrio)) {
+            let reasonText = '';
+            switch(topPrio) {
+                case 'camera': reasonText = 'A top-tier camera for stunning photos'; break;
+                case 'performance': reasonText = 'Blazing-fast performance for demanding tasks'; break;
+                case 'battery': reasonText = 'An all-day battery to keep you going'; break;
+                case 'price': reasonText = 'Exceptional value for the money'; break;
+                default: break;
+            }
+            if(reasonText) reasons.push(reasonText);
+        }
+    }
+
+    if (answers.features === 'stylus' && phone.tags.includes('stylus')) {
+        reasons.push('A perfect creative tool with its built-in stylus');
+    }
+    if (answers.features === 'foldable' && phone.tags.includes('foldable')) {
+        reasons.push('A futuristic folding screen for multitasking');
+    }
+    if (answers.gaming === 'gaming-pro' && phone.tags.includes('gaming-pro')) {
+        reasons.push('Built for competitive, high-performance gaming');
+    }
+    if (answers.durability === 'rugged' && phone.tags.includes('rugged')) {
+        reasons.push('Extra durable for peace of mind');
+    }
+
+    if (reasons.length < 3) {
+        if (phone.tags.includes(answers.screenSize)) {
+            reasons.push(answers.screenSize === 'large-screen' ? 'An immersive large display' : 'A comfortable compact design');
+        }
+    }
+     if (reasons.length < 3) {
+         if (phone.tags.includes(answers.longevity)) {
+             reasons.push('Built to last with long-term software support');
+         }
+     }
+
+    return reasons.slice(0, 3);
+};
+
+const TechProfile = ({ answers }) => {
+    const getPersona = () => {
+        const topPrio = answers.priorities?.[0];
+        if (topPrio === 'price' || answers.budget === 'budget') return "The Savvy Shopper";
+        if (topPrio === 'performance' && answers.gaming === 'gaming-pro') return "The Power Player";
+        if (topPrio === 'camera' && answers.cameraPrio?.[0] === 'portraits') return "The Memory Maker";
+        if (topPrio === 'battery' && answers.longevity === 'long-support') return "The Marathoner";
+        return "The Balanced User";
+    };
+
+    const ProfileItem = ({ title, value }) => (
+        <div>
+            <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider">{title}</h4>
+            <p className="text-gray-800 text-lg">{getPriorityText(value)}</p>
+        </div>
+    );
+
+    return (
+        <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 mt-12">
+            <h3 className="text-2xl font-bold text-[#002D3E] mb-2">Your Tech Persona: <span className="text-[#00A99D]">{getPersona()}</span></h3>
+            <p className="text-gray-600 mb-6">Here's a summary of what you told us is important.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
+                <div>
+                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Priorities</h4>
+                    <ol className="list-decimal list-inside text-gray-800 space-y-1">
+                        {answers.priorities?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
+                    </ol>
+                </div>
+                 <div>
+                    <h4 className="font-bold text-gray-500 uppercase text-sm tracking-wider mb-2">Your Photo Style</h4>
+                     <ol className="list-decimal list-inside text-gray-800 space-y-1">
+                        {answers.cameraPrio?.map(p => <li key={p}>{getPriorityText(p)}</li>)}
+                    </ol>
+                </div>
+                <div className="space-y-4">
+                     <ProfileItem title="Budget" value={answers.budget} />
+                     <ProfileItem title="Screen Size" value={answers.screenSize} />
+                </div>
+                <div className="space-y-4">
+                    <ProfileItem title="How Long You'll Keep It" value={answers.longevity} />
+                    <ProfileItem title="Durability" value={answers.durability} />
+                </div>
             </div>
         </div>
     );
