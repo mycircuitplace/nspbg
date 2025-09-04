@@ -382,12 +382,29 @@ const getRecommendations = (answers) => {
             }
         });
 
+        // --- Newness Priority Logic ---
         const isValuePriority = answers.priorities && (answers.priorities[0] === 'price' || answers.priorities[1] === 'price');
         const currentYear = 2025; 
         if (phone.releaseYear === currentYear) {
             scores[phone.id] += isValuePriority ? 5 : 15;
         }
     });
+    
+    // --- Post-Scoring Logic for Newer Models ---
+    const isValuePriority = answers.priorities && (answers.priorities[0] === 'price' || answers.priorities[1] === 'price');
+    if (!isValuePriority) {
+        const phoneScores = Object.entries(scores);
+        const pixel9s = phoneScores.filter(([id, _]) => id.includes('google-pixel-9'));
+        const pixel10s = phoneScores.filter(([id, _]) => id.includes('google-pixel-10'));
+        
+        // If a Pixel 10 is affordable, penalize all Pixel 9s
+        if (pixel10s.some(([id, score]) => score > -500)) {
+            pixel9s.forEach(([id, _]) => {
+                scores[id] -= 50; 
+            });
+        }
+    }
+
 
     const sortedPhoneIds = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
     let top3Ids = sortedPhoneIds.slice(0, 3);
@@ -718,6 +735,7 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 };
 
 export default App;
+
 
 
 
