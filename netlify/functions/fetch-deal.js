@@ -1,40 +1,7 @@
 const axios = require('axios');
 
-// --- AFFILIATE LINK TRANSFORMATION LOGIC ---
-const transformToAffiliateLink = (url, affiliateIds) => {
-    if (!url) return null;
-
-    try {
-        const urlObj = new URL(url);
-
-        // Amazon Associates Transformation
-        if (urlObj.hostname.includes('amazon.com') && affiliateIds.amazon) {
-            urlObj.searchParams.set('tag', affiliateIds.amazon);
-            console.log(`Transformed to Amazon affiliate link: ${urlObj.toString()}`);
-            return urlObj.toString();
-        }
-        
-        // CJ Affiliate (for Verizon, AT&T, etc.) Transformation
-        const cjDomains = ['verizon.com', 'att.com', 't-mobile.com'];
-        if (cjDomains.some(domain => urlObj.hostname.includes(domain)) && affiliateIds.cj) {
-            const encodedUrl = encodeURIComponent(url);
-            // This is a standard CJ deep link format. The "URL" parameter points to the deal page.
-            const cjLink = `https://www.anrdoezrs.net/click-${affiliateIds.cj}-10451_?URL=${encodedUrl}`;
-            console.log(`Transformed to CJ affiliate link: ${cjLink}`);
-            return cjLink;
-        }
-
-    } catch (error) {
-        console.error("Could not transform URL:", error.message);
-        return url; // Return original URL if transformation fails
-    }
-
-    return url; // Return original if no match
-};
-
 // --- Helper for Gemini Search with Grounding (Primary Search) ---
 const searchWithGemini = async (query, productName) => {
-    // ... (previous Gemini search logic remains the same)
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
         console.error("Google API Key (for Gemini) is not configured.");
@@ -42,7 +9,17 @@ const searchWithGemini = async (query, productName) => {
     }
 
     const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available from a US retailer. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions from major, reputable US retailers. **It is critical that the deal you find is for the exact model name provided: "${productName}". Do not substitute a 'Pro', 'Plus', or 'Ultra' version if it is not in the user's request.** Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Verizon - $800 off with Trade-in"). The URL must lead directly to the deal page. If after a thorough search you cannot find any specific, active deals for the correct model, you MUST return a JSON object with the "url" field set to null, for example: {"title": "No specific deals found", "url": null}. Do not return a standard full-price retail listing. Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
+    const systemPrompt = `You are an AI deal-finding engine. Your mission is to analyze the entire internet via Google Search to find the single best consumer deal for a specific smartphone available for purchase from a major, reputable US retailer. Your primary goal is to find a deal from Amazon.com if a good one exists. The "best deal" is the offer with the lowest total cost of ownership, considering price, rebates, gift cards, bundles, and trade-in promotions.
+
+**CRITICAL RULES:**
+1. The URL you return MUST be a direct link to a product listing page where the user can make a purchase.
+2. Prioritize links from major US e-commerce sites like Amazon, Best Buy, Walmart, Target, or official carrier stores like Verizon, AT&T, T-Mobile, and the manufacturer's own store.
+3. **DO NOT** return links to Reddit, news articles, review sites, forums, or any page that is not a direct retail product page.
+4. The deal you find MUST be for the **exact model name provided: "${productName}"**. Do not substitute a 'Pro', 'Plus', or 'Ultra' version if it is not in the user's request.
+
+Your final output MUST be a single, clean JSON object. If a valid deal is found, provide a "title" and a "url". The title should be concise and mention the retailer and the key value (e.g., "Amazon - $150 off Unlocked Model" or "Best Buy - $100 Gift Card Included"). If you cannot find a valid retail link that meets these strict criteria, you MUST return a JSON object with the "url" field set to null.
+
+Your entire output must be ONLY the JSON object, with no additional text, formatting, markdown, or explanations.`;
     
     const payload = {
         contents: [{ parts: [{ text: query }] }],
@@ -87,7 +64,6 @@ const searchWithGemini = async (query, productName) => {
 
 // --- Helper for Google Custom Search API Fallback ---
 const searchGoogle = async (query) => {
-    // ... (previous Google search logic remains the same)
     const apiKey = process.env.GOOGLE_API_KEY;
     const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
     
@@ -122,11 +98,6 @@ const searchGoogle = async (query) => {
 
 exports.handler = async (event) => {
   const { productName, storage } = event.queryStringParameters;
-
-  const affiliateIds = {
-      amazon: process.env.AMAZON_ASSOCIATE_ID,
-      cj: process.env.CJ_PID
-  };
   
   const geminiQuery = `User request: Find the best current deal in the United States on the ${productName} (${storage}). Analyze prices, trade-ins, and gift card offers from major US retailers.`;
   const googleApiQuery = `"${productName}" ${storage} sale deal offer promotion`;
@@ -134,34 +105,37 @@ exports.handler = async (event) => {
   let deal = null;
 
   try {
+    // 1. Try Gemini with Grounding first
     deal = await searchWithGemini(geminiQuery, productName);
 
+    // 2. If Gemini fails, fall back to the standard Google Custom Search API
     if (!deal) {
-      console.log("Gemini search failed. Falling back to Google Custom Search API.");
+      console.log("Gemini search failed or found no deal. Falling back to Google Custom Search API.");
       deal = await searchGoogle(googleApiQuery);
     }
   } catch (error) {
     console.error("A critical error occurred during the deal searching process:", error.message);
   }
 
+  // 3. If both APIs fail, create the final failsafe link
   if (!deal) {
-    console.log("All API providers failed. Creating a generic Google search link.");
+    console.log("All API providers failed. Creating a generic Google search link as the final fallback.");
     const genericGoogleQuery = `best deal on ${productName} ${storage}`;
     deal = {
       title: "Find Best Deal on Google",
       url: `https://www.google.com/search?q=${encodeURIComponent(genericGoogleQuery)}`,
     };
-  } else {
-    // If a deal was found, try to transform it into an affiliate link
-    deal.url = transformToAffiliateLink(deal.url, affiliateIds);
   }
 
+  // Always return a successful response with a deal object
   return {
     statusCode: 200,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ deal }),
   };
 };
+
+
 
 
 
