@@ -299,11 +299,17 @@ const getRecommendations = (answers) => {
     const budgetOrder = { 'budget': 1, 'standard': 2, 'premium': 3, 'ultra-premium': 4 };
     const userBudgetLevel = budgetOrder[answers.budget];
 
-    // --- Dynamic Price Depreciation Logic ---
     const getEffectiveBudgetCategory = (phone) => {
         const basePriceMap = { 'budget': 350, 'standard': 600, 'premium': 1000, 'ultra-premium': 1400 };
         const yearsOld = 2025 - phone.releaseYear;
-        const depreciationFactor = Math.pow(0.8, yearsOld); // 20% depreciation per year
+        let depreciationFactor;
+
+        if (phone.ecosystem === 'apple') {
+            depreciationFactor = Math.pow(0.9, yearsOld); // 10% depreciation for iPhones
+        } else {
+            depreciationFactor = Math.pow(0.8, yearsOld); // 20% depreciation for Android
+        }
+        
         const effectivePrice = basePriceMap[phone.budgetCategory] * depreciationFactor;
 
         if (effectivePrice < 400) return 'budget';
@@ -380,12 +386,6 @@ const getRecommendations = (answers) => {
         const currentYear = 2025; 
         if (phone.releaseYear === currentYear) {
             scores[phone.id] += isValuePriority ? 5 : 15;
-        }
-        if (phone.name.includes('Pixel 9') && !isValuePriority) {
-             const newerModelExistsInBudget = PRODUCT_DATABASE.some(p => p.name.includes('Pixel 10') && budgetOrder[getEffectiveBudgetCategory(p)] <= userBudgetLevel);
-             if (newerModelExistsInBudget) {
-                scores[phone.id] -= 25;
-             }
         }
     });
 
@@ -718,6 +718,8 @@ const ResultsDisplay = ({ answers, onRestart }) => {
 };
 
 export default App;
+
+
 
 
 
